@@ -43,7 +43,7 @@ fun ShortPassContent(
             AsyncPassImage(model = pass.stripFile(context), modifier = Modifier.fillMaxWidth())
         }
 
-        DateLocationRow(pass)
+        DateLocationRow(pass, true)
     }
 }
 
@@ -80,6 +80,6 @@ fun PassContent(
 
         content.invoke(cardColors)
 
-        DateLocationRow(pass)
+        DateLocationRow(pass, false)
     }
 }

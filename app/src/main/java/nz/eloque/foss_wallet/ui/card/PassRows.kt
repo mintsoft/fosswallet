@@ -76,7 +76,8 @@ private fun LogoView(
 
 @Composable
 fun DateLocationRow(
-    pass: Pass
+    pass: Pass,
+    showName: Boolean
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -84,13 +85,15 @@ fun DateLocationRow(
     ) {
         DateView(pass.description, pass.relevantDate, pass.expirationDate)
         pass.locations.firstOrNull()?.let { LocationButton(it) }
-        AbbreviatingText(
-            text = pass.nameGuess(),
-            maxLines = 1,
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Right,
-            modifier = Modifier.fillMaxWidth().padding(10.dp)
-        )
+        if(showName) {
+            AbbreviatingText(
+                text = pass.nameGuess(),
+                maxLines = 1,
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Right,
+                modifier = Modifier.fillMaxWidth().padding(10.dp)
+            )
+        }
     }
 }
 
