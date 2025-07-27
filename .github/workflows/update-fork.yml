@@ -11,4 +11,4 @@ jobs:
       - uses: Shurtu-gal/autoupdate-fork-action@v1
         with:
           github_token: ${{ secrets.BOT_TOKEN }}
-          base_branch: master
+          base_branch: main
