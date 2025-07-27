@@ -81,7 +81,6 @@ fun DateLocationRow(
     Row(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
     ) {
         DateView(pass.description, pass.relevantDate, pass.expirationDate)
         pass.locations.firstOrNull()?.let { LocationButton(it) }
@@ -90,6 +89,7 @@ fun DateLocationRow(
             maxLines = 1,
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Right,
+            modifier = Modifier.fillMaxWidth().padding(10.dp)
         )
     }
 }
