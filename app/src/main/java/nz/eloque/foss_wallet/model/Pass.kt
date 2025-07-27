@@ -125,4 +125,16 @@ data class Pass(
     fun MutableList<PassField>.contains(query: String): Boolean {
         return this.any { query in (it.label ?: "") || it.content.contains(query) }
     }
+
+    fun nameGuess(): String {
+        val keysToCheck = listOf("paxname", "fullname", "passenger", "passengerheading", "passenger-name", "sec_passenger", "back_name")
+        val namePotentials = this.secondaryFields + this.auxiliaryFields + this.backFields
+
+        val nameGuess = namePotentials.firstOrNull {it.key.lowercase() in keysToCheck}
+        if (nameGuess != null) {
+            return nameGuess.content.prettyPrint().uppercase()
+        }
+
+        return ""
+    }
 }

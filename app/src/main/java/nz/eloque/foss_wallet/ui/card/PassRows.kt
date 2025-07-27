@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import nz.eloque.foss_wallet.R
@@ -84,9 +85,10 @@ fun DateLocationRow(
         DateView(pass.description, pass.relevantDate, pass.expirationDate)
         pass.locations.firstOrNull()?.let { LocationButton(it) }
         AbbreviatingText(
-            text = pass.auxiliaryFields.first {it.key=="paxName"}.content.prettyPrint(),
+            text = pass.nameGuess(),
             maxLines = 1,
             style = MaterialTheme.typography.headlineSmall,
+            textAlign = TextAlign.Right,
         )
     }
 }
