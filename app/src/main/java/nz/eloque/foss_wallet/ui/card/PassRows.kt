@@ -80,7 +80,8 @@ fun DateLocationRow(
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
     ) {
         DateView(pass.description, pass.relevantDate, pass.expirationDate)
         pass.locations.firstOrNull()?.let { LocationButton(it) }
