@@ -9,7 +9,9 @@ jobs:
   update-fork:
     runs-on: ubuntu-latest
     steps:
-      - uses: Shurtu-gal/autoupdate-fork-action@latest
+      - uses: tgymnich/fork-sync@v1.8
         with:
-          github_token: ${{ secrets.BOT_TOKEN }}
-          base_branch: main
+          token: ${{ secrets.BOT_TOKEN }}
+          owner: SeineEloquenz
+          base: main
+          head: main
