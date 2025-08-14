@@ -1,4 +1,4 @@
-package nz.eloque.foss_wallet.ui.view.wallet
+package nz.eloque.foss_wallet.ui.screens.wallet
 
 import android.app.Application
 import android.content.Context
@@ -81,6 +81,9 @@ class PassViewModel @Inject constructor(
     fun load(context: Context, inputStream: InputStream): ImportResult = passStore.load(context, inputStream).apply { updatePasses() }
     fun associate(groupId: Long, passes: Set<Pass>) = passStore.associate(groupId, passes).apply { updatePasses() }
     fun dessociate(pass: Pass, groupId: Long) = passStore.dessociate(pass, groupId).apply { updatePasses() }
+
+    fun archive(pass: Pass) = passStore.archive(pass).apply { updatePasses() }
+    fun unarchive(pass: Pass) = passStore.unarchive(pass).apply { updatePasses() }
 
     fun barcodePosition(): BarcodePosition = settingsStore.barcodePosition()
 

@@ -7,6 +7,7 @@ import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Wallet
@@ -24,16 +25,18 @@ import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import nz.eloque.foss_wallet.R
 import nz.eloque.foss_wallet.shortcut.Shortcut
-import nz.eloque.foss_wallet.ui.screens.AboutScreen
-import nz.eloque.foss_wallet.ui.screens.PassScreen
-import nz.eloque.foss_wallet.ui.screens.SettingsScreen
 import nz.eloque.foss_wallet.ui.screens.UpdateFailureScreen
-import nz.eloque.foss_wallet.ui.screens.WalletScreen
-import nz.eloque.foss_wallet.ui.view.settings.SettingsViewModel
-import nz.eloque.foss_wallet.ui.view.wallet.PassViewModel
+import nz.eloque.foss_wallet.ui.screens.about.AboutScreen
+import nz.eloque.foss_wallet.ui.screens.archive.ArchiveScreen
+import nz.eloque.foss_wallet.ui.screens.pass.PassScreen
+import nz.eloque.foss_wallet.ui.screens.settings.SettingsScreen
+import nz.eloque.foss_wallet.ui.screens.settings.SettingsViewModel
+import nz.eloque.foss_wallet.ui.screens.wallet.PassViewModel
+import nz.eloque.foss_wallet.ui.screens.wallet.WalletScreen
 
 sealed class Screen(val route: String, val icon: ImageVector, @param:StringRes val resourceId: Int) {
     data object Wallet : Screen("wallet", Icons.Default.Wallet, R.string.wallet)
+    data object Archive : Screen("archive", Icons.Default.Archive, R.string.archive)
     data object About : Screen("about", Icons.Default.Info, R.string.about)
     data object Settings : Screen("settings", Icons.Default.Settings, R.string.settings)
 }
@@ -59,6 +62,9 @@ fun WalletApp(
         ) {
             composable(Screen.Wallet.route) {
                 WalletScreen(navController, passViewModel)
+            }
+            composable(Screen.Archive.route) {
+                ArchiveScreen(navController, passViewModel)
             }
             composable(Screen.About.route) {
                 AboutScreen(navController)

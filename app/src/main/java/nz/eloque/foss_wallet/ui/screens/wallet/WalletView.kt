@@ -1,4 +1,4 @@
-package nz.eloque.foss_wallet.ui.view.wallet
+package nz.eloque.foss_wallet.ui.screens.wallet
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +26,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateSet
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -44,22 +45,25 @@ fun WalletView(
     navController: NavController,
     passViewModel: PassViewModel,
     modifier: Modifier = Modifier,
+    emptyIcon: ImageVector = Icons.Default.Wallet,
+    showArchived: Boolean = false,
     listState: LazyListState = rememberLazyListState(),
     scrollBehavior: TopAppBarScrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(),
     selectedPasses: SnapshotStateSet<Pass>,
 ) {
-    val list = passViewModel.uiState.collectAsState()
+    val walletState = passViewModel.uiState.collectAsState()
+    val passes = walletState.value.passes.filter { showArchived == it.archived }
 
     val comparator by remember { mutableStateOf( Comparator<Pass> { left, right ->
         -left.addedAt.compareTo(right.addedAt)
     }) }
 
-    if (list.value.passes.isEmpty()) {
+    if (passes.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             Image(
-                imageVector = Icons.Default.Wallet,
+                imageVector = emptyIcon,
                 colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.secondary),
                 contentDescription = stringResource(R.string.wallet),
                 contentScale = ContentScale.FillWidth,
@@ -85,7 +89,7 @@ fun WalletView(
                     .padding(start = 6.dp, end = 6.dp, bottom = 6.dp)
             )
         }
-        val sortedPasses = list.value.passes.sortedWith(comparator).groupBy { it.groupId }.toList()
+        val sortedPasses = passes.sortedWith(comparator).groupBy { it.groupId }.toList()
         val groups = sortedPasses.filter { it.first != null }
         val ungrouped = sortedPasses.filter { it.first == null }.flatMap { it.second }
         items(groups) { (groupId, passes) ->
