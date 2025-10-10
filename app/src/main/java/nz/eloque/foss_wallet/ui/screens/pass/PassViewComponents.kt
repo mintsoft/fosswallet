@@ -4,11 +4,11 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -65,8 +65,8 @@ fun BarcodesView(
     if (increaseBrightness) {
         UpdateBrightness()
     }
-    barcodes.firstOrNull()?.let {
-        val image = it.encodeAsBitmap(1000, 1000)
+    barcodes.firstOrNull()?.let { barcode ->
+        val image = barcode.encodeAsBitmap(1000, 1000)
         Row(
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxWidth()
@@ -83,7 +83,7 @@ fun BarcodesView(
                         .clickable { fullscreen.value = !fullscreen.value },
                     barcodePosition = barcodePosition
                 )
-                it.altText?.let { Text(
+                barcode.altText?.let { Text(
                     text = it,
                     style = MaterialTheme.typography.labelSmall,
                     textAlign = TextAlign.Center,
@@ -132,14 +132,17 @@ fun AsyncPassImage(
     modifier: Modifier = Modifier
 ) {
     model?.let {
-        AsyncImage(
-            model = it,
-            contentDescription = stringResource(R.string.image),
-            contentScale = ContentScale.Fit,
-            modifier = modifier
-                .width(100.dp)
-                .height(100.dp)
-        )
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            AsyncImage(
+                model = it,
+                contentDescription = stringResource(R.string.image),
+                contentScale = ContentScale.Fit,
+                modifier = modifier
+            )
+        }
     }
 }
 

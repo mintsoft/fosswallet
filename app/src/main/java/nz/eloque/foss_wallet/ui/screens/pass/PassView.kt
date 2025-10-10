@@ -3,7 +3,6 @@ package nz.eloque.foss_wallet.ui.screens.pass
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -48,7 +47,7 @@ fun PassView(
             Column(
                 verticalArrangement = Arrangement.spacedBy(25.dp)
             ) {
-                AsyncPassImage(model = pass.footerFile(context), modifier = Modifier.fillMaxWidth())
+                AsyncPassImage(model = pass.footerFile(context))
                 BarcodesView(pass.barCodes, barcodePosition, increaseBrightness)
             }
         }
@@ -77,10 +76,10 @@ private fun PassPreview() {
         PassType.Generic(),
         HashSet(),
         Instant.ofEpochMilli(0),
-        false,
-        false,
-        false,
-        false,
+        hasLogo = false,
+        hasStrip = false,
+        hasThumbnail = false,
+        hasFooter = false,
         relevantDate = 1800000000L,
         headerFields = mutableListOf(
             PassField("block", "Block", PassContent.Plain("S1")),
