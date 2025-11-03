@@ -34,6 +34,7 @@ import nz.eloque.foss_wallet.ui.card.PassCard
 import nz.eloque.foss_wallet.ui.effects.ForceOrientation
 import nz.eloque.foss_wallet.ui.effects.Orientation
 import java.time.Instant
+import java.time.ZonedDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,14 +114,14 @@ private fun PassPreview() {
         1,
         "KSC",
         "serial",
-        PassType.Generic(),
+        PassType.Generic,
         HashSet(),
-        Instant.ofEpochMilli(0),
+        Instant.ofEpochSecond(0),
         hasLogo = false,
         hasStrip = false,
         hasThumbnail = false,
         hasFooter = false,
-        relevantDate = 1800000000L,
+        relevantDate = ZonedDateTime.now(),
         headerFields = mutableListOf(
             PassField("block", "Block", PassContent.Plain("S1")),
             PassField("seat", "Seat", PassContent.Plain("47")),
