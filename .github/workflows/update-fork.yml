@@ -1,0 +1,17 @@
+name: Update Fork
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 5 * * *'
+
+jobs:
+  update-fork:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: tgymnich/fork-sync@v1.8
+        with:
+          token: ${{ secrets.BOT_TOKEN }}
+          owner: SeineEloquenz
+          base: main
+          head: main
