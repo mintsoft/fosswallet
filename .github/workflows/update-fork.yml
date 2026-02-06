@@ -1,0 +1,19 @@
+name: Update upstream branch from upstream
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 5 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  update-fork:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync Upstream
+        uses: google/mirror-branch-action@v1.0
+        with:
+          source: main
+          dest: upstream
+          github-token: ${{ secrets.GITHUB_TOKEN }}
