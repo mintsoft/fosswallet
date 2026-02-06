@@ -7,6 +7,11 @@ import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.LibraryBooks
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.Create
+import androidx.compose.material.icons.filled.ContentPasteGo
+import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Wallet
@@ -24,24 +29,35 @@ import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import nz.eloque.foss_wallet.R
 import nz.eloque.foss_wallet.shortcut.Shortcut
-import nz.eloque.foss_wallet.ui.screens.AboutScreen
-import nz.eloque.foss_wallet.ui.screens.PassScreen
-import nz.eloque.foss_wallet.ui.screens.SettingsScreen
+import nz.eloque.foss_wallet.ui.screens.LibrariesScreen
 import nz.eloque.foss_wallet.ui.screens.UpdateFailureScreen
-import nz.eloque.foss_wallet.ui.screens.WalletScreen
-import nz.eloque.foss_wallet.ui.view.settings.SettingsViewModel
-import nz.eloque.foss_wallet.ui.view.wallet.PassViewModel
+import nz.eloque.foss_wallet.ui.screens.about.AboutScreen
+import nz.eloque.foss_wallet.ui.screens.archive.ArchiveScreen
+import nz.eloque.foss_wallet.ui.screens.create.CreateScreen
+import nz.eloque.foss_wallet.ui.screens.create.CreateViewModel
+import nz.eloque.foss_wallet.ui.screens.pass.PassScreen
+import nz.eloque.foss_wallet.ui.screens.settings.SettingsScreen
+import nz.eloque.foss_wallet.ui.screens.settings.SettingsViewModel
+import nz.eloque.foss_wallet.ui.screens.wallet.PassViewModel
+import nz.eloque.foss_wallet.ui.screens.wallet.WalletScreen
+import nz.eloque.foss_wallet.ui.screens.webview.WebviewScreen
+import java.net.URLDecoder
 
 sealed class Screen(val route: String, val icon: ImageVector, @param:StringRes val resourceId: Int) {
     data object Wallet : Screen("wallet", Icons.Default.Wallet, R.string.wallet)
+    data object Archive : Screen("archive", Icons.Default.Archive, R.string.archive)
     data object About : Screen("about", Icons.Default.Info, R.string.about)
     data object Settings : Screen("settings", Icons.Default.Settings, R.string.settings)
+    data object Libraries : Screen("libraries", Icons.AutoMirrored.Filled.LibraryBooks, R.string.libraries)
+    data object Create : Screen("create", Icons.Default.Create, R.string.create_pass)
+    data object Web : Screen("webview", Icons.Default.ContentPasteGo, R.string.webview)
 }
 
 @Composable
 fun WalletApp(
     navController: NavHostController,
     modifier: Modifier = Modifier,
+    createViewModel: CreateViewModel = viewModel(),
     passViewModel: PassViewModel = viewModel(),
     settingsViewModel: SettingsViewModel = viewModel(),
 ) {
@@ -60,11 +76,28 @@ fun WalletApp(
             composable(Screen.Wallet.route) {
                 WalletScreen(navController, passViewModel)
             }
+            composable(Screen.Archive.route) {
+                ArchiveScreen(navController, passViewModel)
+            }
             composable(Screen.About.route) {
                 AboutScreen(navController)
             }
+            composable(
+                route = "webview/{url}",
+                arguments = listOf(navArgument("url") { type = NavType.StringType })
+            ) { backStackEntry ->
+                var url = backStackEntry.arguments?.getString("url")!!
+                url = URLDecoder.decode(url);
+                WebviewScreen(navController, passViewModel, url)
+            }
             composable(Screen.Settings.route) {
                 SettingsScreen(navController, settingsViewModel)
+            }
+            composable(Screen.Libraries.route) {
+                LibrariesScreen(navController)
+            }
+            composable(Screen.Create.route) {
+                CreateScreen(navController, createViewModel)
             }
             composable(
                 route = "pass/{passId}",

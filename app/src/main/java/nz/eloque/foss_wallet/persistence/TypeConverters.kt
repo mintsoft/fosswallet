@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.room.TypeConverter
 import nz.eloque.foss_wallet.model.BarCode
 import nz.eloque.foss_wallet.model.PassColors
+import nz.eloque.foss_wallet.model.PassRelevantDate
 import nz.eloque.foss_wallet.model.PassType
 import nz.eloque.foss_wallet.model.TransitType
 import nz.eloque.foss_wallet.model.field.PassField
@@ -13,9 +14,51 @@ import nz.eloque.foss_wallet.utils.map
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
+import java.time.ZonedDateTime
 import java.util.UUID
 
 class TypeConverters {
+
+    @TypeConverter
+    fun fromZonedDateTime(dateTime: ZonedDateTime): String {
+        return dateTime.toString()
+    }
+
+    @TypeConverter
+    fun toZonedDateTime(dateTime: String) : ZonedDateTime {
+        return ZonedDateTime.parse(dateTime)
+    }
+
+    @TypeConverter
+    fun fromRelevantDates(relevantDates: List<PassRelevantDate>): String {
+        val json = JSONArray()
+        relevantDates.forEach {
+            val dJson = JSONObject()
+            if (it is PassRelevantDate.Date) {
+                dJson.put("date", it.date.toString())
+            } else if (it is PassRelevantDate.DateInterval) {
+                dJson.put("startDate", it.startDate.toString())
+                dJson.put("endDate", it.endDate.toString())
+            }
+            json.put(dJson)
+        }
+        return json.toString()
+    }
+
+    @TypeConverter
+    fun toRelevantDates(str: String): List<PassRelevantDate> {
+        return JSONArray(str).map {
+            if (it.has("date"))
+                PassRelevantDate.Date(
+                    ZonedDateTime.parse(it.getString("date"))
+                )
+            else
+                PassRelevantDate.DateInterval(
+                    ZonedDateTime.parse(it.getString("startDate")),
+                    ZonedDateTime.parse(it.getString("endDate"))
+                )
+        }
+    }
 
     @TypeConverter
     fun fromInstant(instant: Instant): Long {
@@ -28,15 +71,21 @@ class TypeConverters {
     }
 
     @TypeConverter
-    fun fromColor(colors: PassColors): String {
+    fun fromColors(colors: PassColors): String {
         return "${colors.background.toArgb()},${colors.foreground.toArgb()},${colors.label.toArgb()}"
     }
 
     @TypeConverter
-    fun toColor(colors: String): PassColors {
+    fun toColors(colors: String): PassColors {
         val split = colors.split(",")
         return PassColors(Color(split[0].toInt()), Color(split[1].toInt()), Color(split[2].toInt()))
     }
+
+    @TypeConverter
+    fun fromColor(color: Color): String = color.toArgb().toString()
+
+    @TypeConverter
+    fun toColor(color: String): Color = Color(color.toInt())
 
     @TypeConverter
     fun fromUuid(uuid: UUID): String = uuid.toString()
@@ -62,10 +111,10 @@ class TypeConverters {
             PassType.Boarding(TransitType.valueOf(split[1]))
         } else {
             when (passType) {
-                PassType.EVENT -> PassType.Event()
-                PassType.COUPON -> PassType.Coupon()
-                PassType.STORE_CARD -> PassType.StoreCard()
-                else -> PassType.Generic()
+                PassType.EVENT -> PassType.Event
+                PassType.COUPON -> PassType.Coupon
+                PassType.STORE_CARD -> PassType.StoreCard
+                else -> PassType.Generic
             }
         }
     }

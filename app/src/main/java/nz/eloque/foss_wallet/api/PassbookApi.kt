@@ -3,8 +3,8 @@ package nz.eloque.foss_wallet.api
 import android.util.Log
 import nz.eloque.foss_wallet.model.Pass
 import nz.eloque.foss_wallet.parsing.PassParser
-import nz.eloque.foss_wallet.persistence.InvalidPassException
-import nz.eloque.foss_wallet.persistence.PassLoader
+import nz.eloque.foss_wallet.persistence.loader.InvalidPassException
+import nz.eloque.foss_wallet.persistence.loader.PassLoader
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -18,7 +18,8 @@ object PassbookApi {
     private const val API_VERSION = "v1"
 
     suspend fun getUpdated(pass: Pass): UpdateResult {
-        val requestUrl = "${pass.webServiceUrl}/${API_VERSION}/passes/${pass.passTypeIdentifier}/${pass.serialNumber}"
+        val webServiceUrl = pass.webServiceUrl!!.trimEnd('/')
+        val requestUrl = "$webServiceUrl/${API_VERSION}/passes/${pass.passTypeIdentifier}/${pass.serialNumber}"
         val authHeader = Pair("Authorization", "ApplePass ${pass.authToken}")
 
         val client = OkHttpClient.Builder().build()
@@ -35,7 +36,7 @@ object PassbookApi {
         }
         return if (response.isSuccessful) {
             try {
-                UpdateResult.Success(UpdateContent.LoadResult(PassLoader(PassParser()).load(response.body!!.byteStream(), pass.id, pass.addedAt)))
+                UpdateResult.Success(UpdateContent.LoadResult(PassLoader(PassParser()).load(response.body.bytes(), pass.id, pass.addedAt)))
             } catch (e: InvalidPassException) {
                 return UpdateResult.Failed(FailureReason.Exception(e))
             }

@@ -7,6 +7,8 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.androidx.room)
     alias(libs.plugins.hilt.android)
+    alias(libs.plugins.aboutLibraries)
+    alias(libs.plugins.aboutLibraries.android)
 }
 
 kotlin {
@@ -48,8 +50,8 @@ android {
         applicationId = "nz.eloque.foss_wallet"
         minSdk = 28
         targetSdk = 36
-        versionCode = 67
-        versionName = "0.23.1"
+        versionCode = 94
+        versionName = "0.38.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -132,6 +134,7 @@ dependencies {
     implementation(libs.coil.compose)
 
     implementation(libs.zxing)
+    implementation(libs.zxing.android.embedded)
 
     //hilt
     implementation(libs.hilt.android)
@@ -147,4 +150,11 @@ dependencies {
     implementation(libs.androidx.work.runtime)
     // Kotlin + coroutines
     implementation(libs.androidx.work.runtime.ktx)
+
+    implementation(libs.json.sanitizer)
+
+    implementation(libs.aboutlibraries.core)
+    implementation(libs.aboutlibraries.compose.m3)
+
+    implementation(libs.color.picker)
 }

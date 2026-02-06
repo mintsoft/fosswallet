@@ -3,26 +3,27 @@ package nz.eloque.foss_wallet.quick_settings
 import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Intent
-import android.graphics.drawable.Icon
 import android.os.Build
-import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import nz.eloque.foss_wallet.MainActivity
 import nz.eloque.foss_wallet.R
 
 class WalletTileService : TileService() {
 
-    override fun onStartListening() {
-        val tile = qsTile
-        tile?.apply {
-            label = this@WalletTileService.getString(R.string.open_wallet) // <-- Name shown on the tile
-            icon = Icon.createWithResource(this@WalletTileService, R.drawable.ic_launcher_foreground)
-            state = Tile.STATE_ACTIVE
+    override fun onTileAdded() {
+        super.onTileAdded()
+
+        qsTile.apply {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                subtitle = getString(R.string.open)
+            }
             updateTile()
         }
     }
 
     override fun onClick() {
+        super.onClick()
+
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
             putExtra("from_tile", true)

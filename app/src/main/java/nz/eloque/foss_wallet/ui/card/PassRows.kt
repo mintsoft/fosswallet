@@ -19,9 +19,7 @@ import nz.eloque.foss_wallet.R
 import nz.eloque.foss_wallet.model.Pass
 import nz.eloque.foss_wallet.model.field.PassField
 import nz.eloque.foss_wallet.ui.components.AbbreviatingText
-import nz.eloque.foss_wallet.ui.components.DateView
-import nz.eloque.foss_wallet.ui.components.LocationButton
-import nz.eloque.foss_wallet.ui.view.pass.HeaderFieldsView
+import nz.eloque.foss_wallet.ui.screens.pass.HeaderFieldsView
 import java.io.File
 
 @Composable

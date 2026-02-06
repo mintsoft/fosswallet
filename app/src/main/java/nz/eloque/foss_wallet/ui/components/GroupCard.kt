@@ -15,37 +15,48 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FolderDelete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import nz.eloque.foss_wallet.R
+import nz.eloque.foss_wallet.model.LocalizedPassWithTags
 import nz.eloque.foss_wallet.model.Pass
+import nz.eloque.foss_wallet.model.Tag
+import nz.eloque.foss_wallet.share.share
 import nz.eloque.foss_wallet.ui.card.ShortPassCard
-import nz.eloque.foss_wallet.ui.view.wallet.PassViewModel
-import nz.eloque.foss_wallet.utils.darken
+import nz.eloque.foss_wallet.ui.screens.wallet.PassViewModel
 
 @Composable
 fun GroupCard(
     groupId: Long,
-    passes: List<Pass>,
-    selectedPasses: MutableSet<Pass>,
+    passes: List<LocalizedPassWithTags>,
+    allTags: Set<Tag>,
+    selectedPasses: MutableSet<LocalizedPassWithTags>,
     passViewModel: PassViewModel,
     modifier: Modifier = Modifier,
-    onClick: ((Pass) -> Unit)? = null,
+    onClick: (Pass) -> Unit = {},
 ) {
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
     ElevatedCard(
@@ -55,7 +66,10 @@ fun GroupCard(
             verticalArrangement = Arrangement.spacedBy(5.dp),
             modifier = Modifier.padding(10.dp)
         ) {
-            val pagerState = rememberPagerState(0) { passes.size }
+            val pagerState = rememberPagerState(
+                initialPage = 0, 
+                pageCount = { passes.size }
+            )
             HorizontalPager(
                 state = pagerState,
                 pageSpacing = 28.dp,
@@ -63,12 +77,11 @@ fun GroupCard(
                 val item = passes[index]
                 ShortPassCard(
                     pass = item,
-                    colors = CardDefaults.elevatedCardColors().copy(
-                        containerColor = CardDefaults.elevatedCardColors().containerColor.darken(
-                            1.25f
-                        )
-                    ),
-                    onClick = { onClick?.invoke(item) },
+                    allTags = allTags,
+                    onClick = { onClick.invoke(item.pass) },
+                    toned = true,
+                    barcodePosition = passViewModel.barcodePosition(),
+                    increaseBrightness = passViewModel.increasePassViewBrightness()
                 )
             }
             Box(
@@ -82,7 +95,7 @@ fun GroupCard(
                 ) {
                     if (selectedPasses.isNotEmpty()) {
                         IconButton(onClick = { coroutineScope.launch(Dispatchers.IO) { groupId.let {
-                            passViewModel.associate(groupId, selectedPasses)
+                            passViewModel.associate(groupId, selectedPasses.map { it.pass }.toSet())
                             selectedPasses.clear()
                         } } }) {
                             Icon(imageVector = Icons.Default.Add, contentDescription = stringResource(R.string.ungroup))
@@ -90,13 +103,33 @@ fun GroupCard(
                     }
                     IconButton(onClick = {
                         val selectedPass = passes[pagerState.currentPage]
-                        coroutineScope.launch(Dispatchers.IO) { groupId.let { passViewModel.dessociate(selectedPass, groupId) } }
+                        coroutineScope.launch(Dispatchers.IO) { groupId.let { passViewModel.dissociate(selectedPass.pass, groupId) } }
                     }) {
                         Icon(imageVector = Icons.Default.Remove, contentDescription = stringResource(R.string.ungroup))
                     }
-                    IconButton(onClick = { coroutineScope.launch(Dispatchers.IO) { groupId.let { passViewModel.deleteGroup(it) } } }
+
+                    val expanded = remember { mutableStateOf(false) }
+                    Box(
+                        modifier = Modifier
                     ) {
-                        Icon(imageVector = Icons.Default.FolderDelete, contentDescription = stringResource(R.string.ungroup))
+                        IconButton(onClick = { expanded.value = !expanded.value }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more_options))
+                        }
+                        DropdownMenu(
+                            expanded = expanded.value,
+                            onDismissRequest = { expanded.value = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.share_passes)) },
+                                leadingIcon = { Icon(imageVector = Icons.Default.Share, contentDescription = stringResource(R.string.share_passes)) },
+                                onClick = { coroutineScope.launch(Dispatchers.IO) { share(passes.map { it.pass }, context) } }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.ungroup)) },
+                                leadingIcon = { Icon(imageVector = Icons.Default.FolderDelete, contentDescription = stringResource(R.string.ungroup)) },
+                                onClick = { coroutineScope.launch(Dispatchers.IO) { groupId.let { passViewModel.deleteGroup(it) } } }
+                            )
+                        }
                     }
                 }
             }
