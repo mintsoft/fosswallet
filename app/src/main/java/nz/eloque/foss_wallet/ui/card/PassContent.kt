@@ -50,9 +50,9 @@ fun ShortPassContent(
             )
         }
 
-        DateLocationRow(pass, true)
         PassCardFooter(
             localizedPass = localizedPass,
+            showName = true,
             allTags = allTags,
             readOnly = true,
         )
@@ -97,20 +97,15 @@ fun PassContent(
         )
         FieldsRow(pass.secondaryFields)
         FieldsRow(pass.auxiliaryFields)
-<<<<<<< HEAD
 
-        content.invoke(cardColors)
-
-        DateLocationRow(pass, false)
-=======
         content()
         PassCardFooter(
             localizedPass = localizedPass,
+            showName = false,
             allTags = allTags,
             onTagClick = onTagClick,
             onTagAdd = onTagAdd,
             onTagCreate = onTagCreate,
         )
->>>>>>> main
     }
 }
