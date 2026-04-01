@@ -83,4 +83,7 @@
     <string name="choose_image">Resim seç</string>
     <string name="clear_selection">Seçimi temizle</string>
     <string name="color">Renk</string>
+    <string name="icon">İkon</string>
+    <string name="brightness">Parlaklık</string>
+    <string name="pass_background_color">Arka plan rengi</string>
 </resources>
