@@ -29,13 +29,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import nz.eloque.compose_kit.chip.ChipSelector
+import nz.eloque.compose_kit.components.FilterBar
+import nz.eloque.compose_kit.components.SelectionMenu
 import nz.eloque.foss_wallet.R
 import nz.eloque.foss_wallet.model.PassType
 import nz.eloque.foss_wallet.model.SortOption
 import nz.eloque.foss_wallet.model.Tag
-import nz.eloque.foss_wallet.ui.components.ChipSelector
-import nz.eloque.foss_wallet.ui.components.FilterBar
-import nz.eloque.foss_wallet.ui.components.SelectionMenu
 import nz.eloque.foss_wallet.ui.components.tag.TagRow
 
 @Composable
@@ -52,26 +52,24 @@ fun FilterBlock(
     var filtersShown by remember { mutableStateOf(false) }
 
     Column {
-
-
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-
             FilterBar(
                 onSearch = { walletViewModel.filter(it) },
-                modifier = Modifier
-                    .padding(start = 6.dp, bottom = 6.dp)
-                    .weight(1f)
+                modifier =
+                    Modifier
+                        .padding(start = 6.dp, bottom = 6.dp)
+                        .weight(1f),
             )
             SelectionMenu(
                 icon = Icons.AutoMirrored.Default.Sort,
-                contentDescription = R.string.filter,
+                contentDescription = stringResource(R.string.filter),
                 options = SortOption.all(),
                 selectedOption = sortOption,
                 onOptionSelected = onSortChange,
-                optionLabel = { resources.getString(it.l18n) }
+                optionLabel = { resources.getString(it.l18n) },
             )
             IconButton(onClick = {
                 filtersShown = !filtersShown
@@ -86,17 +84,19 @@ fun FilterBlock(
 
         AnimatedVisibility(
             visible = filtersShown,
-            enter = expandVertically(
-                animationSpec = tween(durationMillis = 300)
-            ) + fadeIn(animationSpec = tween(300)),
-            exit = shrinkVertically(
-                animationSpec = tween(durationMillis = 300)
-            ) + fadeOut(animationSpec = tween(300))
+            enter =
+                expandVertically(
+                    animationSpec = tween(durationMillis = 300),
+                ) + fadeIn(animationSpec = tween(300)),
+            exit =
+                shrinkVertically(
+                    animationSpec = tween(durationMillis = 300),
+                ) + fadeOut(animationSpec = tween(300)),
         ) {
             Column(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 ChipSelector(
                     options = PassType.all(),
@@ -104,7 +104,7 @@ fun FilterBlock(
                     onOptionSelected = { passTypesToShow.add(it) },
                     onOptionDeselected = { passTypesToShow.remove(it) },
                     optionLabel = { resources.getString(it.label) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 TagRow(
                     tags = tags,
@@ -112,7 +112,7 @@ fun FilterBlock(
                     onTagSelected = { tagToFilterFor.value = it },
                     onTagDeselected = { tagToFilterFor.value = null },
                     walletViewModel = walletViewModel,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }

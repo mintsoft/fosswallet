@@ -22,8 +22,12 @@ enum class Input {
 }
 
 sealed class LoaderResult {
-    data class Single(val passId: String) : LoaderResult()
+    data class Single(
+        val passId: String,
+    ) : LoaderResult()
+
     object Multiple : LoaderResult()
+
     object Invalid : LoaderResult()
 }
 
@@ -47,20 +51,32 @@ class UnknownInputException : InvalidInputException {
     constructor(e: Exception) : super(e)
 }
 
-class Loader(val context: Context) {
-    
-    fun handleInputStream(
+class Loader(
+    val context: Context,
+) {
+    suspend fun handleInputStream(
         inputStream: InputStream,
         walletViewModel: WalletViewModel,
         coroutineScope: CoroutineScope,
     ): LoaderResult {
-        val loadResults = try {
-            this.load(inputStream)
-        } catch (e: InvalidInputException) {
-            Log.e(TAG, "Failed to load pass from intent: $e")
-            coroutineScope.launch(Dispatchers.Main) { Toast
-                .makeText(context, context.getString(R.string.invalid_pass_toast), Toast.LENGTH_SHORT)
-                .show() }
+        val loadResults =
+            try {
+                this.load(inputStream)
+            } catch (e: InvalidInputException) {
+                Log.e(TAG, "Failed to load pass from intent: $e")
+                coroutineScope.launch(Dispatchers.Main) {
+                    Toast
+                        .makeText(context, context.getString(R.string.invalid_pass_toast), Toast.LENGTH_LONG)
+                        .show()
+                }
+                return LoaderResult.Invalid
+            }
+        if (loadResults.isEmpty()) {
+            coroutineScope.launch(Dispatchers.Main) {
+                Toast
+                    .makeText(context, context.getString(R.string.no_passes_found_in_file), Toast.LENGTH_LONG)
+                    .show()
+            }
             return LoaderResult.Invalid
         }
         if (loadResults.size == 1) {
@@ -71,7 +87,12 @@ class Loader(val context: Context) {
                 when (importResult) {
                     is ImportResult.Replaced -> {
                         Toast
-                            .makeText(context, context.getString(R.string.pass_already_imported), Toast.LENGTH_SHORT)
+                            .makeText(context, context.getString(R.string.pass_already_imported), Toast.LENGTH_LONG)
+                            .show()
+                    }
+                    is ImportResult.AutoArchived -> {
+                        Toast
+                            .makeText(context, context.getString(R.string.pass_imported_into_the_archive), Toast.LENGTH_LONG)
                             .show()
                     }
                     else -> {
@@ -88,13 +109,14 @@ class Loader(val context: Context) {
             walletViewModel.group(loadResults.map { it.pass.pass }.toSet())
 
             coroutineScope.launch(Dispatchers.Main) {
-                Toast.makeText(context, context.getString(R.string.n_passes_imported, loadResults.size), Toast.LENGTH_SHORT)
+                Toast
+                    .makeText(context, context.getString(R.string.n_passes_imported, loadResults.size), Toast.LENGTH_SHORT)
                     .show()
             }
             return LoaderResult.Multiple
         }
     }
-    
+
     @Throws(InvalidInputException::class)
     private fun load(input: InputStream): Set<PassLoadResult> {
         val passParser = PassParser(context)
@@ -118,7 +140,7 @@ class Loader(val context: Context) {
         zipStream.close()
         return when {
             entries.contains("pass.json") -> Input.PKPASS
-            entries.all { it.endsWith(".pkpass") } -> Input.PKPASSES
+            entries.isNotEmpty() && entries.all { it.endsWith(".pkpass") } -> Input.PKPASSES
             else -> throw UnknownInputException()
         }
     }

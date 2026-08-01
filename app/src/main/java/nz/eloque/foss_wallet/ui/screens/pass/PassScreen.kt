@@ -1,20 +1,18 @@
 package nz.eloque.foss_wallet.ui.screens.pass
 
 import android.widget.Toast
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AppShortcut
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -29,12 +27,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalUriHandler
@@ -43,14 +42,19 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
+import nz.eloque.compose_kit.components.UpdateButton
+import nz.eloque.compose_kit.pager.HorizontalPagerIndicator
 import nz.eloque.foss_wallet.R
 import nz.eloque.foss_wallet.api.FailureReason
 import nz.eloque.foss_wallet.api.UpdateContent
 import nz.eloque.foss_wallet.api.UpdateResult
 import nz.eloque.foss_wallet.model.LocalizedPassWithTags
 import nz.eloque.foss_wallet.model.Pass
+import nz.eloque.foss_wallet.model.PassMetadata
 import nz.eloque.foss_wallet.shortcut.Shortcut
 import nz.eloque.foss_wallet.ui.AllowOnLockscreen
 import nz.eloque.foss_wallet.ui.WalletScaffold
@@ -62,37 +66,89 @@ import nz.eloque.foss_wallet.utils.asString
 fun PassScreen(
     passId: String,
     navController: NavHostController,
-    passViewModel: PassViewModel
+    passViewModel: PassViewModel,
 ) {
-    val coroutineScope = rememberCoroutineScope()
-    val passFlow: Flow<LocalizedPassWithTags> = passViewModel.passFlowById(passId).mapNotNull { it ?: LocalizedPassWithTags.placeholder() }
+    val passFlow: Flow<LocalizedPassWithTags> =
+        remember(passId) {
+            passViewModel.passFlowById(passId).mapNotNull {
+                it
+                    ?: LocalizedPassWithTags.placeholder()
+            }
+        }
     val localizedPass by remember(passFlow) { passFlow }.collectAsState(initial = LocalizedPassWithTags.placeholder())
+
+    val groupId = localizedPass.metadata.groupId
+    val groupPasses by remember(groupId) {
+        groupId?.let { passViewModel.passesInGroup(it).map { passes -> passes.sortedWith(passViewModel.sortOption().comparator) } }
+            ?: emptyFlow()
+    }.collectAsState(initial = emptyList())
+
+    val passes = remember(groupPasses, localizedPass) { groupPasses.ifEmpty { listOf(localizedPass) } }
 
     val tagFlow = passViewModel.allTags
     val allTags by remember(tagFlow) { tagFlow }.collectAsState(initial = setOf())
 
     AllowOnLockscreen {
         val snackbarHostState = remember { SnackbarHostState() }
-        WalletScaffold(
-            snackbarHostState = snackbarHostState,
-            navController = navController,
-            title = localizedPass.pass.description,
-            toolWindow = true,
-            actions = {
-                Actions(localizedPass.pass, navController, snackbarHostState, passViewModel)
-            },
-        ) { scrollBehavior ->
-            PassView(
-                localizedPass = localizedPass,
-                allTags = allTags,
-                onTagClick = { coroutineScope.launch(Dispatchers.IO) { passViewModel.untag(localizedPass.pass, it) } },
-                onTagAdd = { coroutineScope.launch(Dispatchers.IO) { passViewModel.tag(localizedPass.pass, it) } },
-                onTagCreate = { coroutineScope.launch(Dispatchers.IO) { passViewModel.addTag(it) } },
-                barcodePosition = passViewModel.barcodePosition(),
-                scrollBehavior = scrollBehavior,
-                increaseBrightness = passViewModel.increasePassViewBrightness(),
-                onRenderingChange = { coroutineScope.launch(Dispatchers.IO) { passViewModel.toggleLegacyRendering(localizedPass.pass) } },
-            )
+
+        // Recreate the pager whenever the set or order of group passes changes
+        key(passes.map { it.pass.id }) {
+            val pagerState =
+                rememberPagerState(
+                    initialPage = passes.indexOfFirst { it.pass.id == passId }.coerceAtLeast(0),
+                    pageCount = { passes.size },
+                )
+            val currentPass = passes.getOrElse(pagerState.currentPage) { localizedPass }
+
+            WalletScaffold(
+                snackbarHostState = snackbarHostState,
+                navController = navController,
+                title = currentPass.pass.description,
+                toolWindow = true,
+                actions = {
+                    Actions(
+                        pass = currentPass.pass,
+                        metadata = currentPass.metadata,
+                        navController = navController,
+                        snackbarHostState = snackbarHostState,
+                        passViewModel = passViewModel,
+                    )
+                },
+            ) { scrollBehavior ->
+                Column(
+                    verticalArrangement = Arrangement.Top,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    if (passes.size > 1) {
+                        HorizontalPagerIndicator(
+                            pagerState = pagerState,
+                            modifier = Modifier.padding(8.dp),
+                        )
+                    }
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize(),
+                        pageSpacing = 8.dp,
+                        verticalAlignment = Alignment.Top,
+                    ) { page ->
+                        val pagePass = passes[page]
+                        PassView(
+                            localizedPass = pagePass,
+                            allTags = allTags,
+                            onTagClick = { passViewModel.untag(pagePass.pass, it) },
+                            onTagAdd = { passViewModel.tag(pagePass.pass, it) },
+                            onTagCreate = { passViewModel.addTag(it) },
+                            barcodePosition = passViewModel.barcodePosition(),
+                            scrollBehavior = scrollBehavior,
+                            increaseBrightness = passViewModel.increasePassViewBrightness(),
+                            onRenderingChange = { passViewModel.toggleLegacyRendering(pagePass.pass) },
+                            onAttachmentAdd = { name, bytes -> passViewModel.attach(pagePass.pass, name, bytes) },
+                            onAttachmentDelete = { attachment -> passViewModel.delete(attachment) },
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -100,9 +156,10 @@ fun PassScreen(
 @Composable
 fun Actions(
     pass: Pass,
+    metadata: PassMetadata,
     navController: NavHostController,
     snackbarHostState: SnackbarHostState,
-    passViewModel: PassViewModel
+    passViewModel: PassViewModel,
 ) {
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -123,83 +180,122 @@ fun Actions(
             },
             onDismiss = {
                 showDeleteModal = false
-            }
+            },
         )
     }
 
-    Box(
-        modifier = Modifier
-            .padding(16.dp)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.End,
     ) {
+        if (pass.updatable()) {
+            val uriHandler = LocalUriHandler.current
+            UpdateButton(
+                isLoading = isLoading.value,
+                onClick = {
+                    coroutineScope.launch(Dispatchers.IO) {
+                        isLoading.value = true
+                        val result = passViewModel.update(pass)
+                        isLoading.value = false
+                        when (result) {
+                            is UpdateResult.Success -> {
+                                if (result.content is UpdateContent.Pass) {
+                                    snackbarHostState.showSnackbar(
+                                        message = resources.getString(R.string.update_successful),
+                                        duration = SnackbarDuration.Short,
+                                    )
+                                }
+                            }
+
+                            is UpdateResult.NotUpdated -> {
+                                snackbarHostState.showSnackbar(
+                                    message = resources.getString(R.string.status_not_updated),
+                                )
+                            }
+
+                            is UpdateResult.Failed -> {
+                                val snackResult =
+                                    snackbarHostState.showSnackbar(
+                                        message =
+                                            when (result.reason) {
+                                                is FailureReason.Status -> {
+                                                    resources.getString(
+                                                        result.reason.messageId,
+                                                        result.reason.status,
+                                                    )
+                                                }
+
+                                                else -> {
+                                                    resources.getString(result.reason.messageId)
+                                                }
+                                            },
+                                        actionLabel =
+                                            if (result.reason is FailureReason.Detailed) {
+                                                resources.getString(
+                                                    R.string.details,
+                                                )
+                                            } else {
+                                                null
+                                            },
+                                        duration = SnackbarDuration.Short,
+                                    )
+                                if (snackResult == SnackbarResult.ActionPerformed && result.reason is FailureReason.Detailed) {
+                                    when (result.reason) {
+                                        is FailureReason.Exception -> {
+                                            coroutineScope.launch(Dispatchers.Main) {
+                                                navController.navigate(
+                                                    "updateFailure/${result.reason.exception.message}/${result.reason.exception.asString()}",
+                                                )
+                                            }
+                                        }
+
+                                        is FailureReason.Status -> {
+                                            uriHandler.openUri(
+                                                "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/${result.reason.status}",
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+            )
+        }
+
         IconButton(onClick = { expanded.value = !expanded.value }) {
             Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more_options))
         }
-        
+
         DropdownMenu(
             expanded = expanded.value,
-            onDismissRequest = { expanded.value = false }
+            onDismissRequest = { expanded.value = false },
         ) {
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.add_shortcut)) },
-                leadingIcon =  {
+                leadingIcon = {
                     Icon(imageVector = Icons.Default.AppShortcut, contentDescription = stringResource(R.string.add_shortcut))
                 },
                 onClick = {
                     Shortcut.create(context, pass, pass.description)
-                }
+                },
             )
 
             val passFile = pass.originalPassFile(context)
             if (passFile != null) {
                 PassShareButton(passFile)
             }
-            
-            if (pass.updatable()) {
-                val uriHandler = LocalUriHandler.current
-                UpdateButton(isLoading = isLoading.value) {
-                    coroutineScope.launch(Dispatchers.IO) {
-                        isLoading.value = true
-                        val result = passViewModel.update(pass)
-                        isLoading.value = false
-                        when (result) {
-                            is UpdateResult.Success -> if (result.content is UpdateContent.Pass) {
-                                snackbarHostState.showSnackbar(
-                                    message = resources.getString(R.string.update_successful),
-                                    duration = SnackbarDuration.Short
-                                )
-                            }
-                            is UpdateResult.NotUpdated -> snackbarHostState.showSnackbar(message = resources.getString(R.string.status_not_updated))
-                            is UpdateResult.Failed -> {
-                                val snackResult = snackbarHostState.showSnackbar(
-                                    message = when (result.reason) {
-                                        is FailureReason.Status -> resources.getString(result.reason.messageId, result.reason.status)
-                                        else -> resources.getString(result.reason.messageId)
-                                    },
-                                    actionLabel = if (result.reason is FailureReason.Detailed) resources.getString(R.string.details) else null,
-                                    duration = SnackbarDuration.Short
-                                )
-                                if (snackResult == SnackbarResult.ActionPerformed && result.reason is FailureReason.Detailed) {
-                                    when (result.reason) {
-                                        is FailureReason.Exception -> coroutineScope.launch(Dispatchers.Main) { navController.navigate("updateFailure/${result.reason.exception.message}/${result.reason.exception.asString()}") }
-                                        is FailureReason.Status -> uriHandler.openUri("https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/${result.reason.status}")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
 
-            if (pass.archived) {
+            if (metadata.archived) {
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.unarchive)) },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Unarchive,
-                            contentDescription = stringResource(R.string.unarchive)
+                            contentDescription = stringResource(R.string.unarchive),
                         )
                     },
-                    onClick = { passViewModel.unarchive(pass) }
+                    onClick = { passViewModel.unarchive(pass) },
                 )
             } else {
                 DropdownMenuItem(
@@ -207,49 +303,26 @@ fun Actions(
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Archive,
-                            contentDescription = stringResource(R.string.archive)
+                            contentDescription = stringResource(R.string.archive),
                         )
                     },
-                    onClick = { passViewModel.archive(pass) }
+                    onClick = { passViewModel.archive(pass) },
                 )
             }
 
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
-                leadingIcon =  {
-                    Icon(imageVector = Icons.Default.Delete, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = stringResource(R.string.delete),
+                        tint = MaterialTheme.colorScheme.error,
+                    )
                 },
                 onClick = {
                     showDeleteModal = true
-                }
+                },
             )
         }
     }
-}
-
-@Composable
-fun UpdateButton(
-    isLoading: Boolean,
-    onClick: () -> Unit,
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "updateButtonAnimation")
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 360f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "spin"
-    )
-
-    DropdownMenuItem(
-        text = { Text(stringResource(R.string.update)) },
-        leadingIcon = {
-            Icon(imageVector = Icons.Default.Sync, contentDescription = stringResource(R.string.update), modifier = Modifier.graphicsLayer(
-                rotationZ = if (isLoading) rotation else 0f
-            ))
-        },
-        onClick = { if (!isLoading) onClick() },
-    )
 }

@@ -26,13 +26,14 @@ import java.time.Instant
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
 
-class PassParser(val context: Context? = null) {
-
+class PassParser(
+    val context: Context? = null,
+) {
     fun parse(
         passJson: JSONObject,
         overridingId: String? = null,
         bitmaps: PassBitmaps,
-        addedAt: Instant = Instant.now()
+        addedAt: Instant = Instant.now(),
     ): Pass {
         if (!passJson.has("description")) {
             Log.w(TAG, "Pass has no description.")
@@ -54,26 +55,35 @@ class PassParser(val context: Context? = null) {
             throw InvalidPassException()
         }
         val serialNumber = passJson.getString("serialNumber")
-        val type = when {
-            passJson.has(PassType.EVENT) -> PassType.Event
-            passJson.has(PassType.BOARDING) -> {
-                val boardingJson = passJson.getJSONObject(PassType.BOARDING)
-                val transitType = if (boardingJson.has("transitType")) { TransitType.fromName(boardingJson.getString("transitType")) } else { TransitType.GENERIC }
-                PassType.Boarding(transitType)
-            }
-            passJson.has(PassType.COUPON) -> PassType.Coupon
-            passJson.has(PassType.STORE_CARD) -> PassType.StoreCard
-            else -> PassType.Generic
-        }
-
-        val locations = if (passJson.has("locations")) {
-            passJson.getJSONArray("locations").map { locJson ->
-                Location("").also {
-                    it.latitude = locJson.getDouble("latitude")
-                    it.longitude = locJson.getDouble("longitude")
+        val type =
+            when {
+                passJson.has(PassType.EVENT) -> PassType.Event
+                passJson.has(PassType.BOARDING) -> {
+                    val boardingJson = passJson.getJSONObject(PassType.BOARDING)
+                    val transitType =
+                        if (boardingJson.has("transitType")) {
+                            TransitType.fromName(boardingJson.getString("transitType"))
+                        } else {
+                            TransitType.GENERIC
+                        }
+                    PassType.Boarding(transitType)
                 }
+                passJson.has(PassType.COUPON) -> PassType.Coupon
+                passJson.has(PassType.STORE_CARD) -> PassType.StoreCard
+                else -> PassType.Generic
             }
-        } else listOf()
+
+        val locations =
+            if (passJson.has("locations")) {
+                passJson.getJSONArray("locations").map { locJson ->
+                    Location("").also {
+                        it.latitude = locJson.getDouble("latitude")
+                        it.longitude = locJson.getDouble("longitude")
+                    }
+                }
+            } else {
+                listOf()
+            }
 
         val fieldContainer = passJson.optJSONObject(type.jsonKey)
 
@@ -90,6 +100,7 @@ class PassParser(val context: Context? = null) {
             hasStrip = bitmaps.strip != null,
             hasThumbnail = bitmaps.thumbnail != null,
             hasFooter = bitmaps.footer != null,
+            hasBackground = bitmaps.background != null,
             addedAt = addedAt,
             relevantDates = parseRelevantDates(passJson),
             expirationDate = parseExpiration(passJson),
@@ -98,18 +109,18 @@ class PassParser(val context: Context? = null) {
             webServiceUrl = passJson.stringOrNull("webServiceURL"),
             passTypeIdentifier = passJson.stringOrNull("passTypeIdentifier"),
             locations = locations,
-            headerFields = fieldContainer?.collectFields("headerFields")?:listOf(),
-            primaryFields = fieldContainer?.collectFields("primaryFields")?:listOf(),
-            secondaryFields = fieldContainer?.collectFields("secondaryFields")?:listOf(),
-            auxiliaryFields = fieldContainer?.collectFields("auxiliaryFields")?:listOf(),
-            backFields = fieldContainer?.collectFields("backFields")?:listOf()
+            headerFields = fieldContainer?.collectFields("headerFields") ?: listOf(),
+            primaryFields = fieldContainer?.collectFields("primaryFields") ?: listOf(),
+            secondaryFields = fieldContainer?.collectFields("secondaryFields") ?: listOf(),
+            auxiliaryFields = fieldContainer?.collectFields("auxiliaryFields") ?: listOf(),
+            backFields = fieldContainer?.collectFields("backFields") ?: listOf(),
         )
     }
 
-    private fun parseRelevantDate(passJson: JSONObject): PassRelevantDate? {
-        return try {
+    private fun parseRelevantDate(passJson: JSONObject): PassRelevantDate? =
+        try {
             if (passJson.has("relevantDate")) {
-                passJson.stringOrNull("relevantDate")?.let { ZonedDateTime.parse(it) }?.let { PassRelevantDate.Date(it) }
+                passJson.stringOrNull("relevantDate")?.let { TimeParser.parseAbsoluteOrNull(it) }?.let { PassRelevantDate.Date(it) }
             } else {
                 null
             }
@@ -117,53 +128,51 @@ class PassParser(val context: Context? = null) {
             Log.w(TAG, "Failed parsing relevantDate: $e")
             null
         }
-    }
 
     private fun parseRelevantDates(passJson: JSONObject): List<PassRelevantDate> {
-        val relevantDates = try {
-            if (passJson.has("relevantDates")) {
-                passJson.getJSONArray("relevantDates")
-                    .map { relevantDateJson ->
-                        parseRelevantDateElement(relevantDateJson)
-                    }.filterNotNull()
-            } else {
+        val relevantDates =
+            try {
+                if (passJson.has("relevantDates")) {
+                    passJson
+                        .getJSONArray("relevantDates")
+                        .map { relevantDateJson ->
+                            parseRelevantDateElement(relevantDateJson)
+                        }.filterNotNull()
+                } else {
+                    listOf()
+                }
+            } catch (e: JSONException) {
+                Log.w(TAG, "Failed parsing relevantDates: $e")
                 listOf()
             }
-        } catch (e: JSONException) {
-            Log.w(TAG, "Failed parsing relevantDates: $e")
-            listOf()
-        }
 
         return relevantDates.ifEmpty {
             parseRelevantDate(passJson)?.let { listOf(it) } ?: listOf()
         }
     }
 
-    private fun parseRelevantDateElement(relevantDateJson: JSONObject) : PassRelevantDate? {
-        return if (relevantDateJson.has("startDate") && relevantDateJson.has("endDate")) {
-            PassRelevantDate.DateInterval(
-                ZonedDateTime.parse(relevantDateJson.getString("startDate")),
-                ZonedDateTime.parse(relevantDateJson.getString("endDate"))
-            )
+    private fun parseRelevantDateElement(relevantDateJson: JSONObject): PassRelevantDate? =
+        if (relevantDateJson.has("startDate") && relevantDateJson.has("endDate")) {
+            val start = TimeParser.parseAbsoluteOrNull(relevantDateJson.getString("startDate"))
+            val end = TimeParser.parseAbsoluteOrNull(relevantDateJson.getString("endDate"))
+            if (start != null && end != null) PassRelevantDate.DateInterval(start, end) else null
         } else if (relevantDateJson.has("date")) {
-            PassRelevantDate.Date(
-                ZonedDateTime.parse(relevantDateJson.getString("date"))
-            )
-        } else null
-    }
+            TimeParser.parseAbsoluteOrNull(relevantDateJson.getString("date"))?.let { PassRelevantDate.Date(it) }
+        } else {
+            null
+        }
 
-    private fun parseExpiration(passJson: JSONObject): ZonedDateTime? {
-        return try {
+    private fun parseExpiration(passJson: JSONObject): ZonedDateTime? =
+        try {
             if (passJson.has("expirationDate")) {
-                passJson.stringOrNull("expirationDate")?.let { ZonedDateTime.parse(it) }
+                passJson.stringOrNull("expirationDate")?.let { TimeParser.parseAbsoluteOrNull(it) }
             } else {
                 null
             }
-        } catch(e: DateTimeParseException) {
+        } catch (e: DateTimeParseException) {
             Log.w(TAG, "Failed parsing expirationDate: $e")
             null
         }
-    }
 
     private fun parseBarcodes(passJson: JSONObject): Set<BarCode> {
         val barcodes: MutableSet<BarCode> = LinkedHashSet()
@@ -194,7 +203,7 @@ class PassParser(val context: Context? = null) {
                 barcodeFormat,
                 barcodeJSON.getString("message"),
                 Charset.forName(barcodeJSON.optString("messageEncoding", BarCode.FALLBACK_CHARSET.toString())),
-                barcodeJSON.stringOrNull("altText")
+                barcodeJSON.stringOrNull("altText"),
             )
         }
     }
@@ -202,13 +211,18 @@ class PassParser(val context: Context? = null) {
     private fun parsePassColors(passJson: JSONObject): PassColors? {
         val background = parseColor("backgroundColor", passJson)
         val foreground = parseColor("foregroundColor", passJson)
-        val label = parseColor("labelColor", passJson)
+        val label = parseColor("labelColor", passJson) ?: foreground
         return if (background != null && foreground != null && label != null) {
             PassColors(background, foreground, label)
-        } else null
+        } else {
+            null
+        }
     }
 
-    private fun parseColor(key: String, passJson: JSONObject): Color? {
+    private fun parseColor(
+        key: String,
+        passJson: JSONObject,
+    ): Color? {
         return if (passJson.has(key)) {
             val representation = passJson.getString(key).filterNot { it.isWhitespace() }
             val regexResult = "rgba?\\((\\d+),(\\d+),(\\d+)(?:,([\\d.]+))?\\)".toRegex().find((representation))
@@ -216,30 +230,32 @@ class PassParser(val context: Context? = null) {
                 val (red, green, blue, alpha) = regexResult.destructured
                 val parsedAlpha = alpha.ifEmpty { "1.0" }.toDoubleOrNull() ?: return null
                 return Color(red.toInt(), green.toInt(), blue.toInt(), (parsedAlpha * 255.0).toInt())
-            } else try {
-                Color(representation.toColorInt())
-            } catch (_: IllegalArgumentException) {
-                null
+            } else {
+                try {
+                    Color(representation.toColorInt())
+                } catch (_: IllegalArgumentException) {
+                    null
+                }
             }
-        } else null
+        } else {
+            null
+        }
     }
 
-    private fun JSONObject.collectFields(name: String): List<PassField>? {
-        return try {
+    private fun JSONObject.collectFields(name: String): List<PassField>? =
+        try {
             this.getJSONArray(name).map { FieldParser.parse(it) }
         } catch (_: JSONException) {
             Log.e(TAG, "Fields $name not existing. Stopping parsing.")
             null
         }
-    }
 
-    private fun JSONObject.stringOrNull(key: String): String? {
-        return if (this.has(key)) {
+    private fun JSONObject.stringOrNull(key: String): String? =
+        if (this.has(key)) {
             this.getString(key)
         } else {
             null
         }
-    }
 
     companion object {
         private const val TAG = "PassParser"

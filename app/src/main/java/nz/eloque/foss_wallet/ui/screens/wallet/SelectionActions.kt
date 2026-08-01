@@ -1,6 +1,7 @@
 package nz.eloque.foss_wallet.ui.screens.wallet
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.lazy.LazyListState
@@ -27,7 +28,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import nz.eloque.foss_wallet.R
 import nz.eloque.foss_wallet.model.LocalizedPassWithTags
 import nz.eloque.foss_wallet.share.share
@@ -45,14 +45,12 @@ fun SelectionActions(
     val coroutineScope = rememberCoroutineScope()
     val showDeleteDialog = remember { mutableStateOf(false) }
 
+    BackHandler(enabled = selectedPasses.isNotEmpty()) { selectedPasses.clear() }
+
     fun deleteSelected() {
-        coroutineScope.launch(Dispatchers.IO) {
-            selectedPasses.toList().forEach { walletViewModel.delete(it.pass) }
-            selectedPasses.clear()
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, resources.getString(R.string.pass_deleted), Toast.LENGTH_SHORT).show()
-            }
-        }
+        selectedPasses.toList().forEach { walletViewModel.delete(it.pass) }
+        selectedPasses.clear()
+        Toast.makeText(context, resources.getString(R.string.pass_deleted), Toast.LENGTH_SHORT).show()
     }
 
     if (showDeleteDialog.value) {
@@ -62,13 +60,13 @@ fun SelectionActions(
                 showDeleteDialog.value = false
                 deleteSelected()
             },
-            onDismiss = { showDeleteDialog.value = false }
+            onDismiss = { showDeleteDialog.value = false },
         )
     }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.End
+        horizontalAlignment = Alignment.End,
     ) {
         FloatingActionButton(
             containerColor = MaterialTheme.colorScheme.error,
@@ -81,10 +79,8 @@ fun SelectionActions(
         if (isArchive) {
             FloatingActionButton(
                 onClick = {
-                    coroutineScope.launch(Dispatchers.IO) {
-                        selectedPasses.forEach { walletViewModel.unarchive(it.pass) }
-                        selectedPasses.clear()
-                    }
+                    selectedPasses.forEach { walletViewModel.unarchive(it.pass) }
+                    selectedPasses.clear()
                 },
             ) {
                 Icon(imageVector = Icons.Default.Unarchive, contentDescription = stringResource(R.string.unarchive))
@@ -92,10 +88,8 @@ fun SelectionActions(
         } else {
             FloatingActionButton(
                 onClick = {
-                    coroutineScope.launch(Dispatchers.IO) {
-                        selectedPasses.forEach { walletViewModel.archive(it.pass) }
-                        selectedPasses.clear()
-                    }
+                    selectedPasses.forEach { walletViewModel.archive(it.pass) }
+                    selectedPasses.clear()
                 },
             ) {
                 Icon(imageVector = Icons.Default.Archive, contentDescription = stringResource(R.string.archive))
@@ -115,10 +109,8 @@ fun SelectionActions(
             icon = { Icon(imageVector = Icons.Default.Folder, contentDescription = stringResource(R.string.group)) },
             expanded = listState.isScrollingUp(),
             onClick = {
-                coroutineScope.launch(Dispatchers.IO) {
-                    walletViewModel.group(selectedPasses.map { it.pass }.toSet())
-                    selectedPasses.clear()
-                }
+                walletViewModel.group(selectedPasses.map { it.pass }.toSet())
+                selectedPasses.clear()
             },
         )
     }

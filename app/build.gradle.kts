@@ -8,11 +8,11 @@ plugins {
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.aboutLibraries)
     alias(libs.plugins.aboutLibraries.android)
+    alias(libs.plugins.ktlint)
 }
 
 kotlin {
     compilerOptions {
-        freeCompilerArgs.add("-Xwhen-guards")
         jvmTarget = JvmTarget.JVM_17
     }
 }
@@ -34,7 +34,8 @@ android {
         }
     }
     namespace = "nz.eloque.foss_wallet"
-    compileSdk = 36
+    compileSdk = 37
+    buildToolsVersion = "37.0.0"
 
     buildFeatures {
         compose = true
@@ -44,9 +45,9 @@ android {
     defaultConfig {
         applicationId = "nz.eloque.foss_wallet"
         minSdk = 28
-        targetSdk = 36
-        versionCode = 100
-        versionName = "0.41.1"
+        targetSdk = 37
+        versionCode = 117
+        versionName = "0.48.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -57,9 +58,10 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
             signingConfig = signingConfigs["release"]
         }
@@ -117,7 +119,7 @@ dependencies {
     implementation(libs.androidx.preference.ktx)
     implementation(libs.accompanist.permissions)
 
-    //navigation
+    // navigation
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.hilt.navigation.compose)
 
@@ -136,12 +138,12 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
 
-    //hilt
+    // hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
     ksp(libs.androidx.hilt.compiler)
 
-    //http requests
+    // http requests
     implementation(libs.okhttp)
 
     implementation(libs.androidx.hilt.work)
@@ -157,4 +159,10 @@ dependencies {
     implementation(libs.aboutlibraries.compose.m3)
 
     implementation(libs.color.picker)
+
+    implementation(libs.bcbp.parser)
+
+    implementation(libs.compose.kit)
+
+    implementation(libs.dd.plist)
 }

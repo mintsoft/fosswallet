@@ -22,7 +22,6 @@
     <string name="barcode_position_bottom">Apakšgalā</string>
     <string name="archive">Arhivēt</string>
     <string name="export">Izgūt</string>
-    <string name="selected">Atlasītās</string>
     <string name="request_permissions">Pieprasīt atļauju</string>
     <string name="serial_number">Sērijas numurs</string>
     <string name="add_pass">Pievienot caurlaidi</string>
@@ -64,4 +63,13 @@
     <string name="pass_relevant_start">Sākt</string>
     <string name="to">uz</string>
     <string name="the_archive">Arhīvs</string>
+    <string name="boarding_pass">Iekāpšanas karte</string>
+    <string name="no_url_in_clipboard">Starpliktuvē nav URL</string>
+    <string name="no_text_in_clipboard">Starpliktuvē nav teksta</string>
+    <string name="store_card">Veikala karte</string>
+    <string name="status_code">Serveris atbildēja ar statusu %1$s</string>
+    <string name="searching">Meklēšana…</string>
+    <string name="pass_expiration_date">Derīguma termiņš</string>
+    <string name="attachments">Pielikumi</string>
+    <string name="background">Fons</string>
 </resources>

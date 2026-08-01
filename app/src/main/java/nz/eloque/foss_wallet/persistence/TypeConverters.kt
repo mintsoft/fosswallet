@@ -10,25 +10,22 @@ import nz.eloque.foss_wallet.model.PassRelevantDate
 import nz.eloque.foss_wallet.model.PassType
 import nz.eloque.foss_wallet.model.TransitType
 import nz.eloque.foss_wallet.model.field.PassField
+import nz.eloque.foss_wallet.parsing.TimeParser
 import nz.eloque.foss_wallet.utils.map
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
 import java.time.ZonedDateTime
-import java.util.LinkedHashSet
+import java.time.format.DateTimeParseException
 import java.util.UUID
 
 class TypeConverters {
+    @TypeConverter
+    fun fromZonedDateTime(dateTime: ZonedDateTime): String = dateTime.toString()
 
     @TypeConverter
-    fun fromZonedDateTime(dateTime: ZonedDateTime): String {
-        return dateTime.toString()
-    }
-
-    @TypeConverter
-    fun toZonedDateTime(dateTime: String) : ZonedDateTime {
-        return ZonedDateTime.parse(dateTime)
-    }
+    fun toZonedDateTime(dateTime: String): ZonedDateTime =
+        TimeParser.parseAbsoluteOrNull(dateTime) ?: throw DateTimeParseException("Not a timestamp: $dateTime", dateTime, 0)
 
     @TypeConverter
     fun fromRelevantDates(relevantDates: List<PassRelevantDate>): String {
@@ -47,34 +44,28 @@ class TypeConverters {
     }
 
     @TypeConverter
-    fun toRelevantDates(str: String): List<PassRelevantDate> {
-        return JSONArray(str).map {
-            if (it.has("date"))
+    fun toRelevantDates(str: String): List<PassRelevantDate> =
+        JSONArray(str).map {
+            if (it.has("date")) {
                 PassRelevantDate.Date(
-                    ZonedDateTime.parse(it.getString("date"))
+                    toZonedDateTime(it.getString("date")),
                 )
-            else
+            } else {
                 PassRelevantDate.DateInterval(
-                    ZonedDateTime.parse(it.getString("startDate")),
-                    ZonedDateTime.parse(it.getString("endDate"))
+                    toZonedDateTime(it.getString("startDate")),
+                    toZonedDateTime(it.getString("endDate")),
                 )
+            }
         }
-    }
 
     @TypeConverter
-    fun fromInstant(instant: Instant): Long {
-        return instant.toEpochMilli()
-    }
+    fun fromInstant(instant: Instant): Long = instant.toEpochMilli()
 
     @TypeConverter
-    fun toInstant(instant: Long) : Instant {
-        return Instant.ofEpochMilli(instant)
-    }
+    fun toInstant(instant: Long): Instant = Instant.ofEpochMilli(instant)
 
     @TypeConverter
-    fun fromColors(colors: PassColors): String {
-        return "${colors.background.toArgb()},${colors.foreground.toArgb()},${colors.label.toArgb()}"
-    }
+    fun fromColors(colors: PassColors): String = "${colors.background.toArgb()},${colors.foreground.toArgb()},${colors.label.toArgb()}"
 
     @TypeConverter
     fun toColors(colors: String): PassColors {
@@ -95,15 +86,14 @@ class TypeConverters {
     fun toUuid(uuid: String): UUID = UUID.fromString(uuid)
 
     @TypeConverter
-    fun fromPassType(passType: PassType): String {
-        return when (passType) {
+    fun fromPassType(passType: PassType): String =
+        when (passType) {
             is PassType.Boarding -> passType.jsonKey + "," + passType.transitType.toString()
             is PassType.Coupon -> passType.jsonKey
             is PassType.Event -> passType.jsonKey
             is PassType.Generic -> passType.jsonKey
             is PassType.StoreCard -> passType.jsonKey
         }
-    }
 
     @TypeConverter
     fun toPassType(passType: String): PassType {
@@ -133,14 +123,13 @@ class TypeConverters {
     }
 
     @TypeConverter
-    fun toLocations(str: String): List<Location> {
-        return JSONArray(str).map {
+    fun toLocations(str: String): List<Location> =
+        JSONArray(str).map {
             val location = Location("")
             location.latitude = it.getDouble("latitude")
             location.longitude = it.getDouble("longitude")
             location
         }
-    }
 
     @TypeConverter
     fun fromBarcodes(barcodes: Set<BarCode>): String {
@@ -165,7 +154,5 @@ class TypeConverters {
     }
 
     @TypeConverter
-    fun toFields(str: String): List<PassField> {
-        return JSONArray(str).map { PassField.fromJson(it) }
-    }
+    fun toFields(str: String): List<PassField> = JSONArray(str).map { PassField.fromJson(it) }
 }
