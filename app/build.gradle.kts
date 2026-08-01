@@ -2,18 +2,17 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.jetbrains.kotlin.plugin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.androidx.room)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.aboutLibraries)
     alias(libs.plugins.aboutLibraries.android)
+    alias(libs.plugins.ktlint)
 }
 
 kotlin {
     compilerOptions {
-        freeCompilerArgs.add("-Xwhen-guards")
         jvmTarget = JvmTarget.JVM_17
     }
 }
@@ -35,23 +34,20 @@ android {
         }
     }
     namespace = "nz.eloque.foss_wallet"
-    compileSdk = 36
+    compileSdk = 37
+    buildToolsVersion = "37.0.0"
 
     buildFeatures {
         compose = true
         buildConfig = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.8"
-    }
-
     defaultConfig {
         applicationId = "nz.eloque.foss_wallet"
         minSdk = 28
-        targetSdk = 36
-        versionCode = 94
-        versionName = "0.38.0"
+        targetSdk = 37
+        versionCode = 117
+        versionName = "0.48.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -62,9 +58,10 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
             signingConfig = signingConfigs["release"]
         }
@@ -77,18 +74,20 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    room {
-        schemaDirectory("$projectDir/schemas")
-    }
     androidResources {
         generateLocaleConfig = true
     }
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
-    hilt {
-        enableAggregatingTask = true
-    }
+}
+
+room {
+    schemaDirectory("$projectDir/schemas")
+}
+
+hilt {
+    enableAggregatingTask = true
 }
 
 dependencies {
@@ -120,12 +119,11 @@ dependencies {
     implementation(libs.androidx.preference.ktx)
     implementation(libs.accompanist.permissions)
 
-    //navigation
+    // navigation
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.hilt.navigation.compose)
 
     implementation(libs.androidx.room.runtime)
-    annotationProcessor(libs.androidx.room.compiler)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
     testImplementation(libs.androidx.room.testing)
@@ -134,14 +132,18 @@ dependencies {
     implementation(libs.coil.compose)
 
     implementation(libs.zxing)
-    implementation(libs.zxing.android.embedded)
+    implementation(libs.zxingcpp.android)
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
 
-    //hilt
+    // hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
     ksp(libs.androidx.hilt.compiler)
 
-    //http requests
+    // http requests
     implementation(libs.okhttp)
 
     implementation(libs.androidx.hilt.work)
@@ -157,4 +159,10 @@ dependencies {
     implementation(libs.aboutlibraries.compose.m3)
 
     implementation(libs.color.picker)
+
+    implementation(libs.bcbp.parser)
+
+    implementation(libs.compose.kit)
+
+    implementation(libs.dd.plist)
 }

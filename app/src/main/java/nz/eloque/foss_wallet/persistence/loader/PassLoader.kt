@@ -22,7 +22,7 @@ import java.util.zip.ZipInputStream
 data class PassLoadResult(
     val pass: PassWithLocalization,
     val bitmaps: PassBitmaps,
-    val originalPass: OriginalPass
+    val originalPass: OriginalPass,
 )
 
 data class PassBitmaps(
@@ -30,10 +30,13 @@ data class PassBitmaps(
     val logo: Bitmap?,
     val strip: Bitmap?,
     val thumbnail: Bitmap?,
-    val footer: Bitmap?
+    val footer: Bitmap?,
+    val background: Bitmap?,
 ) {
-
-    fun saveToDisk(context: Context, id: String) {
+    fun saveToDisk(
+        context: Context,
+        id: String,
+    ) {
         val directory = File(context.filesDir, id)
         if (!directory.exists()) {
             directory.mkdirs()
@@ -43,9 +46,14 @@ data class PassBitmaps(
         save(directory, "strip.png", strip)
         save(directory, "thumbnail.png", thumbnail)
         save(directory, "footer.png", footer)
+        save(directory, "background.png", background)
     }
 
-    private fun save(directory: File, path: String, bitmap: Bitmap?) {
+    private fun save(
+        directory: File,
+        path: String,
+        bitmap: Bitmap?,
+    ) {
         bitmap?.let {
             FileOutputStream(File(directory, path)).use {
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
@@ -55,10 +63,13 @@ data class PassBitmaps(
 }
 
 class PassLoader(
-    private val passParser: PassParser
+    private val passParser: PassParser,
 ) {
-
-    fun load(bytes: ByteArray, resultingId: String? = null, addedAt: Instant = Instant.now()): PassLoadResult {
+    fun load(
+        bytes: ByteArray,
+        resultingId: String? = null,
+        addedAt: Instant = Instant.now(),
+    ): PassLoadResult {
         try {
             return loadPass(bytes, resultingId, addedAt)
         } catch (e: Exception) {
@@ -66,7 +77,11 @@ class PassLoader(
         }
     }
 
-    private fun loadPass(bytes: ByteArray, resultingId: String? = null, addedAt: Instant): PassLoadResult {
+    private fun loadPass(
+        bytes: ByteArray,
+        resultingId: String? = null,
+        addedAt: Instant,
+    ): PassLoadResult {
         val localizations: MutableSet<PassLocalization> = HashSet()
         var passJson: JSONObject? = null
         var logo: Bitmap? = null
@@ -74,6 +89,7 @@ class PassLoader(
         var strip: Bitmap? = null
         var thumbnail: Bitmap? = null
         var footer: Bitmap? = null
+        var background: Bitmap? = null
         ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
             var entry = zip.nextEntry
             do {
@@ -91,25 +107,34 @@ class PassLoader(
                         "pass.json" -> {
                             val content = passBytes.toString(detectEncoding(passBytes))
                             passJson = JsonLoader.load(content)
-                            println("Content:\n$content")
                         }
+
                         in Regex("logo@?.*\\.png") -> {
                             logo = chooseBetter(logo, loadImage(baos))
                         }
+
                         in Regex("icon@?.*\\.png") -> {
                             icon = chooseBetter(icon, loadImage(baos))
                         }
+
                         in Regex("strip@?.*\\.png") -> {
                             strip = chooseBetter(strip, loadImage(baos))
                         }
+
                         in Regex("thumbnail@?.*\\.png") -> {
                             thumbnail = chooseBetter(thumbnail, loadImage(baos))
                         }
+
                         in Regex("footer@?.*\\.png") -> {
                             footer = chooseBetter(footer, loadImage(baos))
                         }
-                        in Regex("..\\.lproj/pass.strings") -> {
-                            localizations.addAll(parseLocalization(entry.name.substring(0, 2), baos))
+
+                        in Regex("background@?.*\\.png") -> {
+                            background = chooseBetter(background, loadImage(baos))
+                        }
+
+                        in LOCALIZATION_FILE_REGEX -> {
+                            localizations.addAll(parseLocalization(entry.name.substringBefore(".lproj"), baos))
                         }
                     }
                 }
@@ -118,9 +143,9 @@ class PassLoader(
         if (icon == null) {
             icon = logo ?: createBitmap(100, 100)
         }
-        //TODO check signature before returning
+        // TODO check signature before returning
         if (passJson != null) {
-            val bitmaps = PassBitmaps(icon, logo, strip, thumbnail, footer)
+            val bitmaps = PassBitmaps(icon, logo, strip, thumbnail, footer, background)
             val pass = passParser.parse(passJson, resultingId, bitmaps, addedAt = addedAt)
             return PassLoadResult(PassWithLocalization(pass, localizations.toList()), bitmaps, OriginalPass(bytes))
         } else {
@@ -141,34 +166,36 @@ class PassLoader(
         }
     }
 
-    private fun parseLocalization(lang: String, baos: ByteArrayOutputStream): Set<PassLocalization> {
+    private fun parseLocalization(
+        lang: String,
+        baos: ByteArrayOutputStream,
+    ): Set<PassLocalization> {
         val bytes = baos.toByteArray()
         val content = bytes.toString(detectEncoding(bytes))
         return LocalizationParser.parseStrings(lang, content)
     }
 
-    fun detectEncoding(bytes: ByteArray): Charset {
-        return when {
+    fun detectEncoding(bytes: ByteArray): Charset =
+        when {
             bytes.startsWith(byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte())) -> Charset.forName("UTF-8")
             bytes.startsWith(byteArrayOf(0xFF.toByte(), 0xFE.toByte())) -> Charset.forName("UTF-16LE")
             bytes.startsWith(byteArrayOf(0xFE.toByte(), 0xFF.toByte())) -> Charset.forName("UTF-16BE")
             else -> Charset.forName("UTF-8") // fallback (could be wrong, but UTF-8 is common)
         }
-    }
 
-    private fun chooseBetter(left: Bitmap?, right: Bitmap?): Bitmap? {
-        return when {
+    private fun chooseBetter(
+        left: Bitmap?,
+        right: Bitmap?,
+    ): Bitmap? =
+        when {
             left == null && right == null -> null
             left == null -> right
             right == null -> left
             left.pixels() > right.pixels() -> left
             else -> right
         }
-    }
 
-    private fun Bitmap.pixels(): Int {
-        return this.height * this.width
-    }
+    private fun Bitmap.pixels(): Int = this.height * this.width
 
     private fun ByteArray.startsWith(prefix: ByteArray): Boolean {
         if (this.size < prefix.size) return false
@@ -177,5 +204,7 @@ class PassLoader(
 
     companion object {
         private const val TAG = "PassLoader"
+        private val LOCALIZATION_FILE_REGEX =
+            Regex("^[A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*\\.lproj/pass\\.strings$")
     }
 }

@@ -22,56 +22,69 @@ data class SettingsUiState(
     val syncInterval: Duration = 1.toDuration(DurationUnit.HOURS),
     val barcodePosition: BarcodePosition = BarcodePosition.Center,
     val increasePassViewBrightness: Boolean = false,
+    val askBeforeDelete: Boolean = true,
 )
 
 @HiltViewModel
-class SettingsViewModel @Inject constructor(
-    application: Application,
-    private val settingsStore: SettingsStore,
-    private val passStore: PassStore,
-    private val updateScheduler: UpdateScheduler,
-) : AndroidViewModel(application) {
-    private val _uiState = MutableStateFlow(SettingsUiState())
-    val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
-    val passFlow = passStore.allPasses()
+class SettingsViewModel
+    @Inject
+    constructor(
+        application: Application,
+        private val settingsStore: SettingsStore,
+        private val passStore: PassStore,
+        private val updateScheduler: UpdateScheduler,
+    ) : AndroidViewModel(application) {
+        private val _uiState = MutableStateFlow(SettingsUiState())
+        val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+        val passFlow = passStore.allPasses()
 
-    init {
-        update()
-    }
+        init {
+            update()
+        }
 
-    private fun update() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                enableSync = settingsStore.isSyncEnabled(),
-                syncInterval = settingsStore.syncInterval(),
-                barcodePosition = settingsStore.barcodePosition(),
-                increasePassViewBrightness = settingsStore.increasePassViewBrightness(),
-            )
+        private fun update() {
+            viewModelScope.launch {
+                _uiState.value =
+                    _uiState.value.copy(
+                        enableSync = settingsStore.isSyncEnabled(),
+                        syncInterval = settingsStore.syncInterval(),
+                        barcodePosition = settingsStore.barcodePosition(),
+                        increasePassViewBrightness = settingsStore.increasePassViewBrightness(),
+                        askBeforeDelete = settingsStore.deleteConfirmationEnabled(),
+                    )
+            }
+        }
+
+        fun refresh() = update()
+
+        fun enableSync(enabled: Boolean) {
+            settingsStore.enableSync(enabled)
+            if (enabled) {
+                updateScheduler.enableSync()
+            } else {
+                updateScheduler.disableSync()
+            }
+            update()
+        }
+
+        fun setSyncInterval(duration: Duration) {
+            settingsStore.setSyncInterval(duration)
+            updateScheduler.updateSyncInterval()
+            update()
+        }
+
+        fun setBarcodePosition(barcodePosition: BarcodePosition) {
+            settingsStore.setBarcodePosition(barcodePosition)
+            update()
+        }
+
+        fun enablePassViewBrightness(enabled: Boolean) {
+            settingsStore.enablePassViewBrightness(enabled)
+            update()
+        }
+
+        fun setAskBeforeDelete(enabled: Boolean) {
+            settingsStore.setDeleteConfirmationEnabled(enabled)
+            update()
         }
     }
-
-    fun enableSync(enabled: Boolean) {
-        settingsStore.enableSync(enabled)
-        if (enabled) {
-            updateScheduler.enableSync()
-        } else {
-            updateScheduler.disableSync()
-        }
-        update()
-    }
-    fun setSyncInterval(duration: Duration) {
-        settingsStore.setSyncInterval(duration)
-        updateScheduler.updateSyncInterval()
-        update()
-    }
-
-    fun setBarcodePosition(barcodePosition: BarcodePosition) {
-        settingsStore.setBarcodePosition(barcodePosition)
-        update()
-    }
-
-    fun enablePassViewBrightness(enabled: Boolean) {
-        settingsStore.enablePassViewBrightness(enabled)
-        update()
-    }
-}

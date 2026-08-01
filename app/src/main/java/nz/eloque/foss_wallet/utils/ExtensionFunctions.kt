@@ -1,6 +1,10 @@
 package nz.eloque.foss_wallet.utils
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.Drawable
 import android.text.format.DateUtils
+import android.webkit.MimeTypeMap
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -9,73 +13,78 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.createBitmap
+import nz.eloque.foss_wallet.model.field.PassDateTime
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.InputStream
 import java.io.PrintWriter
 import java.io.StringWriter
+import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.LinkedList
 
-
 fun <T> JSONArray.map(action: (JSONObject) -> T): List<T> {
     val list: MutableList<T> = LinkedList()
-    this.forEach { list.add(action.invoke(it)) }
+    this.forEach { list.add(action(it)) }
     return list
 }
 
 fun JSONArray.filter(predicate: (JSONObject) -> Boolean): JSONArray {
     val result = JSONArray()
-    this.forEach { if (predicate.invoke(it)) result.put(it) }
+    this.forEach { if (predicate(it)) result.put(it) }
     return result
 }
 
 fun JSONArray.forEach(action: (JSONObject) -> Unit) {
-    var i = 0
-    while (i < this.length()) {
-        val element = this.getJSONObject(i)
-        action.invoke(element)
-        i++
+    for (i in 0 until this.length()) {
+        action(this.getJSONObject(i))
     }
 }
 
-fun ZonedDateTime.prettyDateTime(style: FormatStyle = FormatStyle.SHORT, ignoresTimezone: Boolean = false, isRelative: Boolean = false): String {
-    val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(style)
-    return this.pretty(dateFormatter, ignoresTimezone, isRelative)
-}
+fun PassDateTime.prettyDateTime(
+    style: FormatStyle = FormatStyle.SHORT,
+    isRelative: Boolean = false,
+): String = this.pretty(DateTimeFormatter.ofLocalizedDateTime(style), isRelative)
 
-fun ZonedDateTime.prettyDate(style: FormatStyle = FormatStyle.SHORT, ignoresTimezone: Boolean = false, isRelative: Boolean = false): String {
-    val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofLocalizedDate(style)
-    return this.pretty(dateFormatter, ignoresTimezone, isRelative)
-}
+fun PassDateTime.prettyDate(
+    style: FormatStyle = FormatStyle.SHORT,
+    isRelative: Boolean = false,
+): String = this.pretty(DateTimeFormatter.ofLocalizedDate(style), isRelative)
 
-fun ZonedDateTime.prettyTime(style: FormatStyle = FormatStyle.SHORT, ignoresTimezone: Boolean = false, isRelative: Boolean = false): String {
-    val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofLocalizedTime(style)
-    return this.pretty(dateFormatter, ignoresTimezone, isRelative)
-}
+fun PassDateTime.prettyTime(
+    style: FormatStyle = FormatStyle.SHORT,
+    isRelative: Boolean = false,
+): String = this.pretty(DateTimeFormatter.ofLocalizedTime(style), isRelative)
 
-private fun ZonedDateTime.pretty(dateFormatter: DateTimeFormatter, ignoresTimezone: Boolean = false, isRelative: Boolean = false): String {
+private fun PassDateTime.pretty(
+    formatter: DateTimeFormatter,
+    isRelative: Boolean = false,
+): String {
+    val zone = ZoneId.systemDefault()
     if (isRelative) {
-        return DateUtils.getRelativeTimeSpanString(this.toInstant().toEpochMilli()).toString()
+        return DateUtils.getRelativeTimeSpanString(this.toInstant(zone).toEpochMilli()).toString()
     }
-    return if (ignoresTimezone) {
-        this.toLocalDateTime().format(dateFormatter)
-    } else {
-        this.format(dateFormatter)
-    }
+    return this.zonedAt(zone).format(formatter)
 }
 
-fun Color.darken(factor: Float = 0.3f): Color {
-    return copy(
+fun ZonedDateTime.prettyDate(style: FormatStyle = FormatStyle.SHORT): String =
+    this.withZoneSameInstant(ZoneId.systemDefault()).format(DateTimeFormatter.ofLocalizedDate(style))
+
+fun ZonedDateTime.prettyDateTime(style: FormatStyle = FormatStyle.SHORT): String =
+    this.withZoneSameInstant(ZoneId.systemDefault()).format(DateTimeFormatter.ofLocalizedDateTime(style))
+
+fun Color.darken(factor: Float = 0.3f): Color =
+    copy(
         red = red * factor,
         green = green * factor,
         blue = blue * factor,
-        alpha = alpha
+        alpha = alpha,
     )
-}
 
 fun InputStream.toByteArray(): ByteArray {
     val baos = ByteArrayOutputStream()
@@ -88,13 +97,9 @@ fun InputStream.toByteArray(): ByteArray {
     return baos.toByteArray()
 }
 
-fun JSONObject.stringOrNull(key: String): String? {
-    return if (this.has(key)) this.getString(key) else null
-}
+fun JSONObject.stringOrNull(key: String): String? = if (this.has(key)) this.getString(key) else null
 
-infix fun <T : CharSequence> T.inIgnoreCase(charSequence: T?): Boolean {
-    return charSequence?.contains(this, ignoreCase = true) == true
-}
+infix fun <T : CharSequence> T.inIgnoreCase(charSequence: T?): Boolean = charSequence?.contains(this, ignoreCase = true) == true
 
 @Composable
 fun LazyListState.isScrollingUp(): Boolean {
@@ -117,9 +122,30 @@ fun LazyListState.isScrollingUp(): Boolean {
         }
     }.value
 }
+
 fun Throwable.asString(): String {
     val sw = StringWriter()
     val pw = PrintWriter(sw)
     this.printStackTrace(pw)
     return sw.toString()
+}
+
+fun Drawable.toBitmap(
+    width: Int,
+    height: Int,
+): Bitmap {
+    val bitmap = createBitmap(width, height)
+    val canvas = Canvas(bitmap)
+    this.setBounds(0, 0, width, height)
+    this.draw(canvas)
+    return bitmap
+}
+
+fun File.getMimeType(): String {
+    val extension = this.extension.lowercase()
+
+    return MimeTypeMap
+        .getSingleton()
+        .getMimeTypeFromExtension(extension)
+        ?: "application/octet-stream"
 }

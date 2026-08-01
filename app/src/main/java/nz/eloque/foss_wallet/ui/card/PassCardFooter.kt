@@ -15,6 +15,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,16 +26,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import nz.eloque.compose_kit.chip.ChipRow
 import nz.eloque.foss_wallet.R
 import nz.eloque.foss_wallet.model.LocalizedPassWithTags
 import nz.eloque.foss_wallet.model.PassRelevantDate
 import nz.eloque.foss_wallet.model.Tag
 import nz.eloque.foss_wallet.ui.components.AbbreviatingText
 import nz.eloque.foss_wallet.ui.components.CalendarButton
-import nz.eloque.foss_wallet.ui.components.ChipRow
 import nz.eloque.foss_wallet.ui.components.LocationButton
 import nz.eloque.foss_wallet.ui.components.tag.TagChooser
-
+import nz.eloque.foss_wallet.utils.prettyDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,11 +47,12 @@ fun PassCardFooter(
     onTagAdd: (Tag) -> Unit = {},
     onTagCreate: (Tag) -> Unit = {},
     readOnly: Boolean = false,
+    showDates: Boolean = false,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
     ) {
         val pass = localizedPass.pass
         val tags = localizedPass.tags
@@ -58,23 +60,31 @@ fun PassCardFooter(
         var tagChooserShown by remember { mutableStateOf(false) }
 
         if (pass.relevantDates.any { it is PassRelevantDate.DateInterval }) {
-            val interval: PassRelevantDate.DateInterval = pass.relevantDates.filter {
-                it is PassRelevantDate.DateInterval
-            }[0] as PassRelevantDate.DateInterval
+            val interval: PassRelevantDate.DateInterval =
+                pass.relevantDates.filterIsInstance<PassRelevantDate.DateInterval>()[0]
             CalendarButton(
                 title = pass.description,
                 start = interval.startDate,
-                end = interval.endDate
+                end = interval.endDate,
             )
+            if (showDates) {
+                Text(
+                    text = interval.startDate.prettyDate(),
+                )
+            }
         } else if (pass.relevantDates.any { it is PassRelevantDate.Date }) {
-            val date: PassRelevantDate.Date = pass.relevantDates.filter {
-                it is PassRelevantDate.Date
-            }[0] as PassRelevantDate.Date
+            val date: PassRelevantDate.Date =
+                pass.relevantDates.filterIsInstance<PassRelevantDate.Date>()[0]
             CalendarButton(
                 title = pass.description,
                 start = date.date,
-                end = pass.expirationDate
+                end = pass.expirationDate,
             )
+            if (showDates) {
+                Text(
+                    text = date.date.prettyDate(),
+                )
+            }
         }
         pass.locations.firstOrNull()?.let { LocationButton(it) }
         if(showName) {
@@ -102,7 +112,7 @@ fun PassCardFooter(
                 chipColors.copy(
                     containerColor = it.color,
                     labelColor = contentColor,
-                    leadingIconColor = contentColor
+                    leadingIconColor = contentColor,
                 )
             },
             trailingIcon = {
@@ -110,11 +120,11 @@ fun PassCardFooter(
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = stringResource(R.string.remove_tag),
-                        tint = it.contentColor()
+                        tint = it.contentColor(),
                     )
                 }
             },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
 
         if (!readOnly) {
@@ -123,7 +133,7 @@ fun PassCardFooter(
             }) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(R.string.add_tag)
+                    contentDescription = stringResource(R.string.add_tag),
                 )
             }
         } else {
@@ -141,7 +151,7 @@ fun PassCardFooter(
                         tagChooserShown = false
                     },
                     onTagCreate = onTagCreate,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }

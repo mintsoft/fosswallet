@@ -16,7 +16,7 @@ jobs:
       version_code: ${{ steps.version.outputs.version_code }}
       version_name: ${{ steps.version.outputs.version_name }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Read versionCode and versionName from Gradle
         id: version
         run: |
@@ -35,13 +35,13 @@ jobs:
       - read-version
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Prepare Changelog
         run: |
           mkdir -p changelog
           cp fastlane/metadata/android/en-US/changelogs/${{ needs.read-version.outputs.version_code }}.txt changelog/changelog.txt
       - name: Upload Changelog
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: changelog
           path: changelog
@@ -52,7 +52,7 @@ jobs:
       - read-version
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Prepare Google Play release notes
         run: |
           mkdir -p whatsnew
@@ -68,7 +68,7 @@ jobs:
             fi
           done
       - name: Upload Whats new
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: whatsnew
           path: whatsnew
@@ -77,7 +77,7 @@ jobs:
     name: Build Release Apk
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Copy CI gradle.properties
         run: mkdir -p ~/.gradle ; cp .github/ci-gradle.properties ~/.gradle/gradle.properties
       - name: Decode Keystore
@@ -90,15 +90,15 @@ jobs:
           distribution: temurin
           java-version: 17
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
       - name: Test and Assemble Release
-        run: ./gradlew testReleaseUnitTest assembleRelease
+        run: ./gradlew testDebugUnitTest assembleRelease
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
       - name: Upload Apk
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: apk
           path: app/build/outputs/apk/release
@@ -107,7 +107,7 @@ jobs:
     name: Build Release Bundle
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Copy CI gradle.properties
         run: mkdir -p ~/.gradle ; cp .github/ci-gradle.properties ~/.gradle/gradle.properties
       - name: Decode Keystore
@@ -120,15 +120,15 @@ jobs:
           distribution: temurin
           java-version: 17
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
       - name: Test and Bundle Release
-        run: ./gradlew testReleaseUnitTest bundleRelease
+        run: ./gradlew testDebugUnitTest bundleRelease
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
       - name: Upload Bundle
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: aab
           path: app/build/outputs/bundle/release
@@ -141,18 +141,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download apk from build
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: apk
           path: apk
       - name: Download Changelog
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: changelog
           path: changelog
       - name: Create Release
         id: create-release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: apk/app-release.apk
           body_path: changelog/changelog.txt
@@ -165,13 +165,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download aab from build
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: aab
           path: aab
 
       - name: Download whatsnew
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: whatsnew
           path: whatsnew

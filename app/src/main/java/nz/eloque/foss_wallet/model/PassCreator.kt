@@ -1,40 +1,89 @@
 package nz.eloque.foss_wallet.model
 
-import nz.eloque.foss_wallet.model.field.PassContent
+import android.location.Location
 import nz.eloque.foss_wallet.model.field.PassField
 import nz.eloque.foss_wallet.utils.Hash
 import java.time.Instant
+import java.time.ZonedDateTime
 
 object PassCreator {
-
     const val FORMAT_VERSION = 1
     const val ORGANIZATION = "nz.eloque.foss_wallet"
 
-    fun create(name: String, type: PassType, barCode: BarCode): Pass? {
-        try {
-            barCode.encodeAsBitmap(100, 100, false)
-        } catch (_: IllegalArgumentException) {
+    fun create(
+        name: String,
+        type: PassType,
+        barCode: BarCode,
+        organization: String = ORGANIZATION,
+        serialNumber: String = "",
+        colors: PassColors? = null,
+        location: Location? = null,
+        relevantDates: List<PassRelevantDate> = emptyList(),
+        expirationDate: ZonedDateTime? = null,
+        headerFields: List<PassField> = emptyList(),
+        primaryFields: List<PassField> = emptyList(),
+        secondaryFields: List<PassField> = emptyList(),
+        auxiliaryFields: List<PassField> = emptyList(),
+        backFields: List<PassField> = emptyList(),
+    ): Pass? =
+        create(
+            name = name,
+            type = type,
+            barCodes = listOf(barCode),
+            organization = organization,
+            serialNumber = serialNumber,
+            colors = colors,
+            location = location,
+            relevantDates = relevantDates,
+            expirationDate = expirationDate,
+            headerFields = headerFields,
+            primaryFields = primaryFields,
+            secondaryFields = secondaryFields,
+            auxiliaryFields = auxiliaryFields,
+            backFields = backFields,
+        )
+
+    fun create(
+        name: String,
+        type: PassType,
+        barCodes: List<BarCode>,
+        organization: String = ORGANIZATION,
+        serialNumber: String = "",
+        colors: PassColors? = null,
+        location: Location? = null,
+        relevantDates: List<PassRelevantDate> = emptyList(),
+        expirationDate: ZonedDateTime? = null,
+        headerFields: List<PassField> = emptyList(),
+        primaryFields: List<PassField> = emptyList(),
+        secondaryFields: List<PassField> = emptyList(),
+        auxiliaryFields: List<PassField> = emptyList(),
+        backFields: List<PassField> = emptyList(),
+    ): Pass? {
+        if (barCodes.isEmpty() || barCodes.any { it.isNotValid() }) {
             return null
         }
 
-        val id = Hash.sha256(barCode.toString())
-
-        val nameField = PassField(
-            key = "main",
-            label = "",
-            content = PassContent.Plain(name)
-        )
+        val id = Hash.sha256(barCodes.joinToString("|") { it.toString() })
 
         return Pass(
             id = id,
             description = name,
             formatVersion = FORMAT_VERSION,
-            organization = ORGANIZATION,
-            serialNumber = id,
+            organization = organization.ifBlank { ORGANIZATION },
+            serialNumber = serialNumber.ifBlank { id },
             type = type,
-            barCodes = setOf(barCode),
+            barCodes = LinkedHashSet(barCodes),
             addedAt = Instant.now(),
-            primaryFields = listOf(nameField)
+            logoText = name,
+            colors = colors,
+            locations = location?.let { listOf(it) } ?: emptyList(),
+            relevantDates = relevantDates,
+            expirationDate = expirationDate,
+            headerFields = headerFields,
+            primaryFields = primaryFields,
+            secondaryFields = secondaryFields,
+            auxiliaryFields = auxiliaryFields,
+            backFields = backFields,
         )
     }
 }

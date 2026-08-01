@@ -1,6 +1,7 @@
 package nz.eloque.foss_wallet.ui.screens.wallet
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.lazy.LazyListState
@@ -16,15 +17,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshots.SnapshotStateSet
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import nz.eloque.foss_wallet.R
 import nz.eloque.foss_wallet.model.LocalizedPassWithTags
 import nz.eloque.foss_wallet.share.share
@@ -35,24 +38,40 @@ fun SelectionActions(
     isArchive: Boolean,
     selectedPasses: SnapshotStateSet<LocalizedPassWithTags>,
     listState: LazyListState,
-    passViewModel: PassViewModel,
+    walletViewModel: WalletViewModel,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val coroutineScope = rememberCoroutineScope()
+    val showDeleteDialog = remember { mutableStateOf(false) }
+
+    BackHandler(enabled = selectedPasses.isNotEmpty()) { selectedPasses.clear() }
+
+    fun deleteSelected() {
+        selectedPasses.toList().forEach { walletViewModel.delete(it.pass) }
+        selectedPasses.clear()
+        Toast.makeText(context, resources.getString(R.string.pass_deleted), Toast.LENGTH_SHORT).show()
+    }
+
+    if (showDeleteDialog.value) {
+        DeleteConfirmationDialog(
+            settingsStore = walletViewModel.settingsStore,
+            onConfirm = {
+                showDeleteDialog.value = false
+                deleteSelected()
+            },
+            onDismiss = { showDeleteDialog.value = false },
+        )
+    }
+
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.End
+        horizontalAlignment = Alignment.End,
     ) {
         FloatingActionButton(
             containerColor = MaterialTheme.colorScheme.error,
             onClick = {
-                coroutineScope.launch(Dispatchers.IO) {
-                    selectedPasses.forEach { passViewModel.delete(it.pass) }
-                    selectedPasses.clear()
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, context.getString(R.string.pass_deleted), Toast.LENGTH_SHORT).show()
-                    }
-                }
+                showDeleteDialog.value = true
             },
         ) {
             Icon(imageVector = Icons.Default.Delete, contentDescription = stringResource(R.string.delete))
@@ -60,10 +79,8 @@ fun SelectionActions(
         if (isArchive) {
             FloatingActionButton(
                 onClick = {
-                    coroutineScope.launch(Dispatchers.IO) {
-                        selectedPasses.forEach { passViewModel.unarchive(it.pass) }
-                        selectedPasses.clear()
-                    }
+                    selectedPasses.forEach { walletViewModel.unarchive(it.pass) }
+                    selectedPasses.clear()
                 },
             ) {
                 Icon(imageVector = Icons.Default.Unarchive, contentDescription = stringResource(R.string.unarchive))
@@ -71,10 +88,8 @@ fun SelectionActions(
         } else {
             FloatingActionButton(
                 onClick = {
-                    coroutineScope.launch(Dispatchers.IO) {
-                        selectedPasses.forEach { passViewModel.archive(it.pass) }
-                        selectedPasses.clear()
-                    }
+                    selectedPasses.forEach { walletViewModel.archive(it.pass) }
+                    selectedPasses.clear()
                 },
             ) {
                 Icon(imageVector = Icons.Default.Archive, contentDescription = stringResource(R.string.archive))
@@ -94,10 +109,8 @@ fun SelectionActions(
             icon = { Icon(imageVector = Icons.Default.Folder, contentDescription = stringResource(R.string.group)) },
             expanded = listState.isScrollingUp(),
             onClick = {
-                coroutineScope.launch(Dispatchers.IO) {
-                    passViewModel.group(selectedPasses.map { it.pass }.toSet())
-                    selectedPasses.clear()
-                }
+                walletViewModel.group(selectedPasses.map { it.pass }.toSet())
+                selectedPasses.clear()
             },
         )
     }

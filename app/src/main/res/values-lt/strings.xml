@@ -55,4 +55,26 @@
     <string name="open">Atverti</string>
     <string name="barcode_position">Brūkšninio kodo padėtis visame ekrane</string>
     <string name="pass_view">Paso peržiūra</string>
+    <string name="libraries">Bibliotekos</string>
+    <string name="coupon">Kuponas</string>
+    <string name="logo">Logotipas</string>
+    <string name="thumbnail">Miniatiūra</string>
+    <string name="brightness">Ryškumas</string>
+    <string name="pass_background_color">Fono spalva</string>
+    <string name="the_archive">Archyvas</string>
+    <string name="compatibility_mode">Suderinamumo režimas</string>
+    <string name="pass_expiration_date">Galiojimo pabaigos data</string>
+    <string name="pass_relevant_end">Pabaiga</string>
+    <string name="barcode_position_bottom">Apačia</string>
+    <string name="barcode_position_center">Centras</string>
+    <string name="barcode_position_top">Viršus</string>
+    <string name="more_options">Daugiau parinkčių</string>
+    <string name="icon">Piktograma</string>
+    <string name="searching">Ieškoma…</string>
+    <string name="attachments">Priedai</string>
+    <string name="background">Fonas</string>
+    <string name="attachment_name">Priedo pavadinimas</string>
+    <string name="boarding_pass">Įlaipinimo kortelė</string>
+    <string name="event">Renginio bilietas</string>
+    <string name="filter">Rūšiuoti pagal</string>
 </resources>

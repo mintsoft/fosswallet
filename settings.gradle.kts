@@ -24,9 +24,18 @@ dependencyResolutionManagement {
 buildCache {
     local {
         isEnabled = true
-        directory =  File(rootDir, "build-cache")
+        directory = File(rootDir, "build-cache")
     }
 }
 
 rootProject.name = "FossWallet"
 include(":app")
+
+val localComposeKitPath = providers.environmentVariable("LOCAL_COMPOSE_KIT").orNull?.takeIf { it.isNotBlank() }
+if (localComposeKitPath != null) {
+    includeBuild(localComposeKitPath) {
+        dependencySubstitution {
+            substitute(module("com.github.SeineEloquenz.compose-kit:lib-android")).using(project(":lib"))
+        }
+    }
+}

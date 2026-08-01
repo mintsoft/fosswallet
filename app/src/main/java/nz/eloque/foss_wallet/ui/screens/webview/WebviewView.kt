@@ -19,19 +19,18 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import nz.eloque.foss_wallet.persistence.loader.Loader
 import nz.eloque.foss_wallet.persistence.loader.LoaderResult
-import nz.eloque.foss_wallet.ui.screens.wallet.PassViewModel
+import nz.eloque.foss_wallet.ui.screens.wallet.WalletViewModel
 import nz.eloque.foss_wallet.utils.PkpassMimeTypes
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import java.io.ByteArrayInputStream
 
-
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun WebviewView(
     navController: NavHostController,
-    passViewModel: PassViewModel,
+    walletViewModel: WalletViewModel,
     url: String,
 ) {
     val context = LocalContext.current
@@ -40,12 +39,13 @@ fun WebviewView(
     AndroidView(factory = {
         val webview = WebView(it)
         webview.apply {
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
+            layoutParams =
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                )
             webViewClient =
-                CustomWebViewClient(context, passViewModel, coroutineScope, navController)
+                CustomWebViewClient(context, walletViewModel, coroutineScope, navController)
             loadUrl(url)
         }
 
@@ -60,31 +60,29 @@ fun WebviewView(
 
 class CustomWebViewClient(
     val context: Context,
-    val passViewModel: PassViewModel,
+    val walletViewModel: WalletViewModel,
     val coroutineScope: CoroutineScope,
-    val navController: NavController
+    val navController: NavController,
 ) : WebViewClient() {
-
     override fun shouldInterceptRequest(
         view: WebView?,
-        request: WebResourceRequest?
-    ): WebResourceResponse? {
-        return interceptRequest(view, request)
-    }
+        request: WebResourceRequest?,
+    ): WebResourceResponse? = interceptRequest(view, request)
 
     private fun interceptRequest(
         webView: WebView?,
-        request: WebResourceRequest?
+        request: WebResourceRequest?,
     ): WebResourceResponse? {
         return try {
             val okhttp: OkHttpClient = OkHttpClient.Builder().build()
-            val okHttpRequest = Request.Builder().also {
-                it.url(request?.url.toString())
-                for (header in request!!.requestHeaders) {
-                    if (header.key.startsWith("sec-ch-ua")) continue
-                    it.addHeader(header.key, header.value)
+            val okHttpRequest =
+                Request.Builder().also {
+                    it.url(request?.url.toString())
+                    for (header in request!!.requestHeaders) {
+                        if (header.key.startsWith("sec-ch-ua")) continue
+                        it.addHeader(header.key, header.value)
+                    }
                 }
-            }
             val response = okhttp.newCall(okHttpRequest.build()).execute()
 
             val contentType = response.headers["content-type"]?.split(";")?.first()
@@ -103,11 +101,12 @@ class CustomWebViewClient(
         val bytes = response.body.byteStream().readBytes()
         coroutineScope.launch {
             withContext(Dispatchers.IO) {
-                val result = Loader(context).handleInputStream(
-                    ByteArrayInputStream(bytes),
-                    passViewModel,
-                    coroutineScope
-                )
+                val result =
+                    Loader(context).handleInputStream(
+                        ByteArrayInputStream(bytes),
+                        walletViewModel,
+                        coroutineScope,
+                    )
                 if (result is LoaderResult.Single) {
                     withContext(Dispatchers.Main) {
                         navController.popBackStack()

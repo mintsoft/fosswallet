@@ -1,3 +1,10 @@
+> [!Warning]
+> **Free and Open-Source Android is under threat.**
+>
+> Google will turn Android into a locked-down platform, restricting your essential freedom to install apps of your choice. Make your voice heard
+>
+> [**Keep Android Open**](https://keepandroidopen.org/).
+
 # <img alt="Logo" src="app/src/main/icon-source.svg" width="40" height="40"/> FossWallet
 
 FossWallet is a free and open source (FOSS) .pkpass application.
@@ -17,6 +24,12 @@ Features (non-exhaustive):
 * Compatibility mode for legacy scanners
 * Multiple sort options (incl. by date)
 * Attach tags to passes
+* Gadgetbridge integration to get your passes on your watch
+
+### Gadgetbridge integration
+FossWallet integrates with Gadgetbridge, so that you can use your passes barcodes on supported gadgets.
+To sync your passes to a gadget, select it in the gadgetbridge device list, press the cogwheel to
+get to device settings, and go to the "loyalty cards"-menu. There you'll find options to sync passes.
 
 ## Installation
 
